@@ -1,21 +1,39 @@
 frappe.query_reports["Target Vs Achivement"] = {
 	filters: [
-		{ fieldname: "zone", label: "Zone", fieldtype: "Data" },
-		{ fieldname: "region", label: "Region", fieldtype: "Data" },
-		{ fieldname: "district", label: "District", fieldtype: "Data" },
-		{ fieldname: "branch", label: "Branch", fieldtype: "Data" },
+		{
+			fieldname: "zone",
+			label: "Zone",
+			fieldtype: "Data",
+		},
+		{
+			fieldname: "region",
+			label: "Region",
+			fieldtype: "Data",
+		},
+		{
+			fieldname: "district",
+			label: "District",
+			fieldtype: "Data",
+		},
+		{
+			fieldname: "branch",
+			label: "Branch",
+			fieldtype: "Data",
+		},
 		{
 			fieldname: "type",
 			label: "Target Type",
 			fieldtype: "Select",
 			options: "\nMonthly\nYearly\nYTD",
 			default: "Monthly",
+			reqd: 1,
 		},
 		{
 			fieldname: "date",
 			label: "Date",
 			fieldtype: "Date",
-			// default: frappe.datetime.get_today(),
+			default: frappe.datetime.get_today(),
+			reqd: 1,
 		},
 		{
 			fieldname: "compare_type",
@@ -28,14 +46,14 @@ frappe.query_reports["Target Vs Achivement"] = {
 			fieldname: "sort_mode",
 			label: "Sort By",
 			fieldtype: "Select",
-			options: "\nZone-wise Category\nOverall Category",
-			default: "Zone-wise Category",
+			options: "\nCategory Wise\nZone Wise", // ✅ Updated values
+			default: "Category Wise", // ✅ Updated default
 		},
 	],
+
 	onload: function (report) {
 		const date_filter = report.get_filter("date");
 
-		// Only set if user has not selected a date
 		if (!date_filter.get_value()) {
 			frappe.call({
 				method: "frappe.client.get_list",
@@ -48,11 +66,7 @@ frappe.query_reports["Target Vs Achivement"] = {
 				callback: function (r) {
 					if (r.message && r.message.length) {
 						const max_date = r.message[0].date;
-
-						// Set filter value visibly
 						date_filter.set_value(max_date);
-
-						// Reload report with that date
 						report.refresh();
 					}
 				},

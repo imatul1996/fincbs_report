@@ -7,6 +7,13 @@ from frappe.utils import getdate, add_months, add_years
 # =========================================================
 def execute(filters=None):
     filters = filters or {}
+    
+    # Validate required filters
+    if not filters.get("date"):
+        frappe.throw("Please select a date")
+    
+    if not filters.get("type"):
+        filters["type"] = "Monthly"
 
     columns = get_columns()
     current_rows = get_current_data(filters)
@@ -112,24 +119,30 @@ def get_previous_date(base_date, compare_type, filters):
 
 
 # =========================================================
-# CURRENT DATA
+# CURRENT DATA - FIXED VERSION
 # =========================================================
 def get_current_data(filters):
     cond = ""
     params = {}
 
+    # Date filter - mandatory
+    if not filters.get("date"):
+        frappe.throw("Date filter is required")
+    
+    cond += " AND bcr.date = %(date)s"
+    params["date"] = filters["date"]
+
+    # Zone, Region, District, Branch filters
     for f in ["zone", "region", "district", "branch"]:
         if filters.get(f):
             cond += f" AND bcr.{f} = %({f})s"
             params[f] = filters[f]
 
-    if filters.get("date"):
-        cond += " AND bcr.date = %(date)s"
-        params["date"] = filters["date"]
+    # Type filter - always apply
+    target_type = normalize_target_type(filters.get("type", "Monthly"))
+    params["type"] = target_type
 
-    if filters.get("type"):
-        params["type"] = normalize_target_type(filters["type"])
-
+    # ✅ FIXED QUERY - Using GROUP BY to avoid duplicates
     query = f"""
         SELECT
             bcr.sol_id,
@@ -139,22 +152,25 @@ def get_current_data(filters):
             bcr.district,
             bcr.date,
             bcr.achievement,
-            tva.target,
+            MAX(tva.target) as target,
             bcr.branch_category
         FROM `tabBranch Category Report` bcr
         LEFT JOIN `tabTarget Vs Achivement` tva
             ON tva.sol_id = bcr.sol_id
-            {"AND tva.type = %(type)s" if filters.get("type") else ""}
+            AND tva.type = %(type)s
         WHERE bcr.docstatus < 2
           AND TRIM(IFNULL(bcr.branch, '')) != '-'
         {cond}
+        GROUP BY bcr.sol_id, bcr.branch, bcr.zone, bcr.region, 
+                 bcr.district, bcr.date, bcr.achievement, bcr.branch_category
+        ORDER BY bcr.zone, bcr.branch
     """
 
     return frappe.db.sql(query, params, as_dict=True)
 
 
 # =========================================================
-# PREVIOUS ACHIEVEMENT % MAP
+# PREVIOUS ACHIEVEMENT % MAP - FIXED VERSION
 # =========================================================
 def get_previous_achievement_map(filters):
     if not filters.get("date") or not filters.get("compare_type"):
@@ -172,17 +188,23 @@ def get_previous_achievement_map(filters):
             cond += f" AND bcr.{f} = %({f})s"
             params[f] = filters[f]
 
-    if filters.get("type"):
-        params["type"] = normalize_target_type(filters["type"])
+    # Type filter - always apply
+    target_type = normalize_target_type(filters.get("type", "Monthly"))
+    params["type"] = target_type
 
+    # ✅ FIXED QUERY - Using GROUP BY
     query = f"""
-        SELECT bcr.sol_id, bcr.achievement, tva.target
+        SELECT 
+            bcr.sol_id, 
+            bcr.achievement, 
+            MAX(tva.target) as target
         FROM `tabBranch Category Report` bcr
         LEFT JOIN `tabTarget Vs Achivement` tva
             ON tva.sol_id = bcr.sol_id
-            {"AND tva.type = %(type)s" if filters.get("type") else ""}
+            AND tva.type = %(type)s
         WHERE bcr.date = %(prev_date)s
         {cond}
+        GROUP BY bcr.sol_id, bcr.achievement
     """
 
     rows = frappe.db.sql(query, params, as_dict=True)
@@ -197,7 +219,7 @@ def get_previous_achievement_map(filters):
 
 
 # =========================================================
-# PREVIOUS CATEGORY MAP
+# PREVIOUS CATEGORY MAP - FIXED VERSION
 # =========================================================
 def get_previous_category_map(filters):
     if not filters.get("date") or not filters.get("compare_type"):
@@ -215,17 +237,23 @@ def get_previous_category_map(filters):
             cond += f" AND bcr.{f} = %({f})s"
             params[f] = filters[f]
 
-    if filters.get("type"):
-        params["type"] = normalize_target_type(filters["type"])
+    # Type filter - always apply
+    target_type = normalize_target_type(filters.get("type", "Monthly"))
+    params["type"] = target_type
 
+    # ✅ FIXED QUERY - Using GROUP BY
     query = f"""
-        SELECT bcr.sol_id, bcr.achievement, tva.target
+        SELECT 
+            bcr.sol_id, 
+            bcr.achievement, 
+            MAX(tva.target) as target
         FROM `tabBranch Category Report` bcr
         LEFT JOIN `tabTarget Vs Achivement` tva
             ON tva.sol_id = bcr.sol_id
-            {"AND tva.type = %(type)s" if filters.get("type") else ""}
+            AND tva.type = %(type)s
         WHERE bcr.date = %(prev_date)s
         {cond}
+        GROUP BY bcr.sol_id, bcr.achievement
     """
 
     rows = frappe.db.sql(query, params, as_dict=True)
@@ -294,7 +322,7 @@ def get_report_summary(data, prev_category_map):
 
 
 # =========================================================
-# FINAL DATA (WITH ZONE-WISE FIX)
+# FINAL DATA (UPDATED SORT LOGIC)
 # =========================================================
 def build_final_data(current_rows, previous_map, filters, keep_category=False):
     CATEGORY_ORDER = {
@@ -350,10 +378,10 @@ def build_final_data(current_rows, previous_map, filters, keep_category=False):
         r["_band"] = band
         r["_rank"] = CATEGORY_ORDER[cat]
 
-    # -------- SORT FIX --------
-    sort_mode = filters.get("sort_mode") or "Zone-wise Category"
+    # ✅ UPDATED SORT LOGIC - New values
+    sort_mode = filters.get("sort_mode", "Category Wise")  # Updated default
 
-    if sort_mode == "Zone-wise Category":
+    if sort_mode == "Zone Wise":  # ✅ Updated value
         current_rows.sort(
             key=lambda x: (
                 (x.get("zone") or ""),
@@ -361,14 +389,13 @@ def build_final_data(current_rows, previous_map, filters, keep_category=False):
                 -x["_pct"],
             )
         )
-    else:
+    else:  # Category Wise (default)
         current_rows.sort(
             key=lambda x: (
                 x["_rank"],
                 -x["_pct"],
             )
         )
-    # --------------------------
 
     def wrap(val, bg):
         return f'<div style="background:{bg};padding:6px">{val}</div>'
