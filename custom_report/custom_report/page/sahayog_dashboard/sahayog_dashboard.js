@@ -215,6 +215,8 @@ class SahayogDashboard {
 			const category = target.data("category") || target.attr("data-category");
 			const diff = target.data("diff") || target.attr("data-diff");
 
+			console.log("🖱️ Hover on comparison indicator:", { zone, category, diff });
+
 			if (diff != 0) {
 				this.showComparisonDetailPopup(zone, category);
 			}
@@ -1937,9 +1939,46 @@ class SahayogDashboard {
 		});
 	}
 	showComparisonDetailPopup(zone, category) {
+		// ============================================================
+		// VALIDATION & DEBUG
+		// ============================================================
+		console.log('🔍 showComparisonDetailPopup called with:', {
+			zone: zone,
+			category: category,
+			zoneType: typeof zone,
+			categoryType: typeof category
+		});
+
 		// Guard: if a popup is already open, don't open another one
-		if (this.isComparisonPopupOpen) return;
+		if (this.isComparisonPopupOpen) {
+			console.warn('⚠️ Popup already open, skipping...');
+			return;
+		}
+
+		// Validate zone
+		if (!zone || zone === "Unknown" || zone === "undefined" || zone === null || zone === "ALL") {
+			console.error('❌ Invalid zone:', zone);
+			frappe.msgprint({
+				title: "Zone Required",
+				message: "Cannot show comparison without a specific zone. Please click on a zone-specific row.",
+				indicator: "orange",
+			});
+			return;
+		}
+
+		// Validate category
+		if (!category || category === "Unknown" || category === "undefined" || category === null || category === "ALL") {
+			console.error('❌ Invalid category:', category);
+			frappe.msgprint({
+				title: "Category Required",
+				message: "Cannot show comparison without a specific category.",
+				indicator: "orange",
+			});
+			return;
+		}
+
 		this.isComparisonPopupOpen = true;
+		console.log('✅ Validation passed, calling API...');
 
 		frappe.call({
 			method: "custom_report.custom_report.page.sahayog_dashboard.sahayog_dashboard.get_branch_comparison_detail",
@@ -2786,19 +2825,17 @@ class SahayogDashboard {
 		const indicatorClass = g && g.diff !== 0 ? "cmp-indicator-clickable" : "";
 		let indicatorHtml = "";
 		if (g) {
+			// ✅ FIX: Determine zone and category based on grouping
+			const zoneAttr = this.groupBy === "zone" ? label : "ALL";
+			const categoryAttr = this.groupBy === "category" ? label : "ALL";
+
 			if (totalIncrease > 0 || totalDecrease > 0) {
-				indicatorHtml = ` <span class="cmp-indicator ${indicatorClass}" title="Total + ${totalIncrease}, Total - ${totalDecrease}" data-${groupType}="${label}" data-diff="${g.diff}">
-					<span style="color: green; font-weight: bold;">+${totalIncrease}</span>
-					<span style="color: red; font-weight: bold;">-${totalDecrease}</span>
+				indicatorHtml = ` <span class="cmp-indicator ${indicatorClass}" title="Total ↑${totalIncrease}, Total ↓${totalDecrease}" data-zone="${zoneAttr}" data-category="${categoryAttr}" data-diff="${g.diff}">
+					<span style="color:green; font-weight:bold;">↑${totalIncrease}</span>
+					<span style="color:red; font-weight:bold;">↓${totalDecrease}</span>
 				</span>`;
 			} else {
-				indicatorHtml = ` <span class="cmp-indicator ${
-					g.color
-				} ${indicatorClass}" title="${
-					g && g.diff !== 0 ? "Hover for branch details" : ""
-				}" data-${groupType}="${label}" data-diff="${g.diff}">${g.indicator} ${
-					g.display
-				}</span>`;
+				indicatorHtml = ` <span class="cmp-indicator ${g.color} ${indicatorClass}" title="${g && g.diff !== 0 ? 'Hover for branch details' : ''}" data-zone="${zoneAttr}" data-category="${categoryAttr}" data-diff="${g.diff}">${g.indicator} ${g.display}</span>`;
 			}
 		}
 
@@ -3052,7 +3089,7 @@ class SahayogDashboard {
 
 		this.allDrillData = response; // Store for filtering
 		const allBranches = response.branches;
-		
+
 		const zoneSorter = (a, b) => {
 			const getSortKey = (zoneName) => {
 				if (zoneName && zoneName.startsWith("ZONE-")) {
@@ -3067,26 +3104,28 @@ class SahayogDashboard {
 				}
 				return [1, zoneName]; // Non "ZONE-X" formats come after
 			};
-		
+
 			const keyA = getSortKey(a);
 			const keyB = getSortKey(b);
-		
+
 			if (keyA[0] < keyB[0]) return -1;
 			if (keyA[0] > keyB[0]) return 1;
-			
+
 			if (keyA[1] < keyB[1]) return -1;
 			if (keyA[1] > keyB[1]) return 1;
-			
+
 			return 0;
 		};
 
-		const uniqueZonesFromData = [...new Set(allBranches.map(b => b.zone).filter(z => z))];
+		const uniqueZonesFromData = [...new Set(allBranches.map((b) => b.zone).filter((z) => z))];
 		uniqueZonesFromData.sort(zoneSorter);
 		const uniqueZones = ["All", ...uniqueZonesFromData];
 
-		const uniqueRegionsFromData = [...new Set(allBranches.map(b => b.region).filter(r => r))];
-        uniqueRegionsFromData.sort(); // Alphabetical sort
-        const uniqueRegions = ["All", ...uniqueRegionsFromData];
+		const uniqueRegionsFromData = [
+			...new Set(allBranches.map((b) => b.region).filter((r) => r)),
+		];
+		uniqueRegionsFromData.sort(); // Alphabetical sort
+		const uniqueRegions = ["All", ...uniqueRegionsFromData];
 
 		// 1. FILTERS
 		const filtersHtml = `
@@ -3098,19 +3137,18 @@ class SahayogDashboard {
 				<div class="filter-group">
 					<label for="drill-zone-filter">Filter by Zone</label>
 					<select id="drill-zone-filter">
-						${uniqueZones.map(z => `<option value="${z}">${z}</option>`).join("")}
+						${uniqueZones.map((z) => `<option value="${z}">${z}</option>`).join("")}
 					</select>
 				</div>
 				<div class="filter-group">
 					<label for="drill-region-filter">Filter by Region</label>
 					<select id="drill-region-filter">
-						${uniqueRegions.map(r => `<option value="${r}">${r}</option>`).join("")}
+						${uniqueRegions.map((r) => `<option value="${r}">${r}</option>`).join("")}
 					</select>
 				</div>
 			</div>
 		`;
 		container.append(filtersHtml);
-
 
 		// 2. UNIFIED TABLE
 		const tableHtml = `
@@ -3153,26 +3191,33 @@ class SahayogDashboard {
 
 		// SOL / Branch Name Filter
 		if (this.drillDownFilters.sol) {
-			filteredBranches = filteredBranches.filter(b => {
-				const solMatch = b.sol_id && b.sol_id.toLowerCase().includes(this.drillDownFilters.sol);
-				const nameMatch = b.branch_name && b.branch_name.toLowerCase().includes(this.drillDownFilters.sol);
+			filteredBranches = filteredBranches.filter((b) => {
+				const solMatch =
+					b.sol_id && b.sol_id.toLowerCase().includes(this.drillDownFilters.sol);
+				const nameMatch =
+					b.branch_name &&
+					b.branch_name.toLowerCase().includes(this.drillDownFilters.sol);
 				return solMatch || nameMatch;
 			});
 		}
 
 		// Zone Filter
 		if (this.drillDownFilters.zone && this.drillDownFilters.zone !== "All") {
-			filteredBranches = filteredBranches.filter(b => b.zone === this.drillDownFilters.zone);
+			filteredBranches = filteredBranches.filter(
+				(b) => b.zone === this.drillDownFilters.zone
+			);
 		}
 
 		// Region Filter
 		if (this.drillDownFilters.region && this.drillDownFilters.region !== "All") {
-			filteredBranches = filteredBranches.filter(b => b.region === this.drillDownFilters.region);
+			filteredBranches = filteredBranches.filter(
+				(b) => b.region === this.drillDownFilters.region
+			);
 		}
 
 		this._renderDrillDownTableBody(filteredBranches);
 	}
-	
+
 	_getSegmentForBranch(branchIndex, segments) {
 		for (let i = 0; i < segments.length; i++) {
 			const seg = segments[i];
@@ -3180,7 +3225,7 @@ class SahayogDashboard {
 				const segmentName = seg.segment_name;
 				let colorClass = "";
 				let badgeColor = "";
-	
+
 				switch (i) {
 					case 0: // TOP 25%
 						colorClass = "perf-top-row";
@@ -3215,18 +3260,20 @@ class SahayogDashboard {
 			);
 			return;
 		}
-		
-		const original_branches = this.allDrillData.branches
-		const segments = this.allDrillData.segments
+
+		const original_branches = this.allDrillData.branches;
+		const segments = this.allDrillData.segments;
 
 		branches.forEach((branch, index) => {
-			const originalIndex = original_branches.findIndex(b => b.sol_id === branch.sol_id);
+			const originalIndex = original_branches.findIndex((b) => b.sol_id === branch.sol_id);
 			const segmentInfo = this._getSegmentForBranch(originalIndex, segments);
 
 			const rowHtml = `
 				<tr class="${segmentInfo.colorClass}">
 					<td>${index + 1}</td>
-					<td class="row-label branch-name-cell" data-sol-id="${branch.sol_id}" style="cursor:pointer;">${branch.branch_name}</td>
+					<td class="row-label branch-name-cell" data-sol-id="${branch.sol_id}" style="cursor:pointer;">${
+				branch.branch_name
+			}</td>
 					<td>${branch.sol_id}</td>
 					<td>${branch.zone}</td>
 					<td>${branch.region}</td>
@@ -3250,7 +3297,7 @@ class SahayogDashboard {
 		// Kept here to avoid breaking changes if it's called from somewhere else unexpectedly,
 		// but it should not be used in the new flow.
 		console.warn("createEnhancedDrillDownTable is obsolete and should not be used.");
-		return '<div></div>';
+		return "<div></div>";
 	}
 
 	// Helper functions
