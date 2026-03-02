@@ -2053,9 +2053,9 @@
 										style="margin-left: 5px; color: var(--primary-1);"></span>
 								</th>
 								<th>Employee Name</th>
-								<th>Mobile</th>
-								<th>Joining Date</th>
-								<th>Experience</th>
+								<!-- <th>Mobile</th>
+								<th>Joining Date</th> -->
+								<th>Vintage</th>
 								<th style="text-align: right;">Total Leads</th>
 								<th style="text-align: right;">Total Converted</th>
 								<th style="text-align: right;">Conversion Ratio</th>
@@ -2064,7 +2064,7 @@
 						</thead>
 						<tbody id="manpower-details-tbody">
 							<tr>
-								<td colspan="9" style="text-align: center; color: #64748b; padding: 20px;">
+								<td colspan="7" style="text-align: center; color: #64748b; padding: 20px;">
 									No manpower data available.
 								</td>
 							</tr>
@@ -2911,7 +2911,7 @@
 						if (this.el.manpowerDetailsTbody) {
 							this.el.manpowerDetailsTbody.innerHTML = `
                                 <tr>
-                                    <td colspan="9" style="text-align: center; color: #dc2626; padding: 20px;">
+                                    <td colspan="7" style="text-align: center; color: #dc2626; padding: 20px;">
                                         Error loading data.
                                     </td>
                                 </tr>
@@ -2975,7 +2975,7 @@
 					if (!filteredEmployees || filteredEmployees.length === 0) {
 						tbody.innerHTML = `
                             <tr>
-                                <td colspan="9" style="text-align: center; color: #64748b; padding: 20px;">
+                                <td colspan="7" style="text-align: center; color: #64748b; padding: 20px;">
                                     No matching manpower data available.
                                 </td>
                             </tr>
