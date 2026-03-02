@@ -2059,12 +2059,14 @@
 								<th style="text-align: right;">Total Leads</th>
 								<th style="text-align: right;">Total Converted</th>
 								<th style="text-align: right;">Conversion Ratio</th>
+								<th style="text-align: right;">Monthly Business</th>
+								<th style="text-align: right;">Yearly Business</th>
 								<th style="text-align: center;">PIP Status</th>
 							</tr>
 						</thead>
 						<tbody id="manpower-details-tbody">
 							<tr>
-								<td colspan="7" style="text-align: center; color: #64748b; padding: 20px;">
+								<td colspan="9" style="text-align: center; color: #64748b; padding: 20px;">
 									No manpower data available.
 								</td>
 							</tr>
@@ -2911,7 +2913,7 @@
 						if (this.el.manpowerDetailsTbody) {
 							this.el.manpowerDetailsTbody.innerHTML = `
                                 <tr>
-                                    <td colspan="7" style="text-align: center; color: #dc2626; padding: 20px;">
+                                    <td colspan="9" style="text-align: center; color: #dc2626; padding: 20px;">
                                         Error loading data.
                                     </td>
                                 </tr>
@@ -2975,7 +2977,7 @@
 					if (!filteredEmployees || filteredEmployees.length === 0) {
 						tbody.innerHTML = `
                             <tr>
-                                <td colspan="7" style="text-align: center; color: #64748b; padding: 20px;">
+                                <td colspan="9" style="text-align: center; color: #64748b; padding: 20px;">
                                     No matching manpower data available.
                                 </td>
                             </tr>
@@ -3001,6 +3003,8 @@
                             <td style="text-align: right; font-weight: 600;">${emp.total_leads || 0}</td>
                             <td style="text-align: right; font-weight: 600; color: #097c80;">${emp.total_converted || 0}</td>
                             <td style="text-align: right; font-weight: 700;">${emp.conversion_ratio || "0.00%"}</td>
+							<td style="text-align: right; font-weight: 700;">${this.value(emp.monthly_business)}</td>
+							<td style="text-align: right; font-weight: 700;">${this.value(emp.yearly_business)}</td>
                             <td style="text-align: center;">
                                 ${isPip ? '<span style="color: #dc2626; font-weight: 800; background: #fecaca; padding: 2px 8px; border-radius: 4px; font-size: 10px;">PIP</span>' : ''}
                             </td>
