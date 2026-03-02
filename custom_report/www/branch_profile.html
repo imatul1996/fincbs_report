@@ -1,1943 +1,2078 @@
 <!doctype html>
 <html lang="en">
-	<head>
-		<meta charset="UTF-8" />
-		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-		<title>Branch Dashboard</title>
-		<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
-		<style>
-			:root {
-				--primary-1: #097c80;
-				--primary-2: #066164;
-				--accent: #ffd700;
-				--white: #fff;
-				--shadow: rgba(0, 0, 0, 0.12);
-				--transition: all 0.2s ease;
+
+<head>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<title>Branch Dashboard</title>
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+	<style>
+		:root {
+			--primary-1: #097c80;
+			--primary-2: #066164;
+			--accent: #ffd700;
+			--white: #fff;
+			--shadow: rgba(0, 0, 0, 0.12);
+			--transition: all 0.2s ease;
+		}
+
+		* {
+			margin: 0;
+			padding: 0;
+			box-sizing: border-box;
+			-webkit-font-smoothing: antialiased;
+			-moz-osx-font-smoothing: grayscale;
+		}
+
+		body {
+			font-family:
+				-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial,
+				sans-serif;
+			background: #f8fafc;
+			padding-top: 64px;
+		}
+
+		/* HEADER - Compact design */
+		.header {
+			position: fixed;
+			top: 0;
+			left: 0;
+			right: 0;
+			z-index: 1000;
+			background: linear-gradient(135deg, var(--primary-1), var(--primary-2));
+			color: var(--white);
+			box-shadow: 0 2px 8px var(--shadow);
+			min-height: 64px;
+		}
+
+		.header-content {
+			display: grid;
+			grid-template-columns: auto 1fr auto;
+			align-items: center;
+			gap: 20px;
+			padding: 12px 24px;
+			max-width: 1400px;
+			margin: 0 auto;
+		}
+
+		.branch-info {
+			min-width: 200px;
+			max-width: 300px;
+		}
+
+		.branch-name {
+			font-size: 18px;
+			font-weight: 600;
+			line-height: 1.3;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+		}
+
+		.branch-meta {
+			font-size: 12px;
+			opacity: 0.9;
+			margin-top: 2px;
+			display: flex;
+			gap: 8px;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+		}
+
+		/* SEARCH - Enhanced UX */
+		.branch-search {
+			position: relative;
+			max-width: 500px;
+			margin: 0 auto;
+			width: 100%;
+		}
+
+		.search-container {
+			position: relative;
+			display: flex;
+			background: var(--white);
+			border-radius: 8px;
+			overflow: hidden;
+			box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+			transition: var(--transition);
+		}
+
+		.search-container:focus-within {
+			box-shadow: 0 0 0 2px var(--accent);
+		}
+
+		.search-input {
+			flex: 1;
+			border: none;
+			padding: 10px 14px;
+			font-size: 14px;
+			outline: none;
+			background: transparent;
+			min-width: 0;
+		}
+
+		.search-button {
+			background: var(--accent);
+			border: none;
+			padding: 0 16px;
+			cursor: pointer;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			min-width: 60px;
+			transition: var(--transition);
+		}
+
+		.search-button:hover {
+			background: #e6c200;
+		}
+
+		.search-button:active {
+			transform: scale(0.98);
+		}
+
+		/* SUGGESTIONS - Virtual scroll ready */
+		.search-suggestions {
+			position: absolute;
+			top: 100%;
+			left: 0;
+			right: 0;
+			background: var(--white);
+			border-radius: 8px;
+			box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+			margin-top: 4px;
+			max-height: 280px;
+			overflow: hidden;
+			display: none;
+			z-index: 1001;
+			color: #333333;
+		}
+
+		.suggestions-container {
+			max-height: 280px;
+			overflow-y: auto;
+			overscroll-behavior: contain;
+			-webkit-overflow-scrolling: touch;
+		}
+
+		.suggestion-item {
+			padding: 10px 14px;
+			cursor: pointer;
+			border-bottom: 1px solid #f1f5f9;
+			font-size: 13px;
+			line-height: 1.4;
+			transition: var(--transition);
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+		}
+
+		.suggestion-item:last-child {
+			border-bottom: none;
+		}
+
+		.suggestion-item:hover,
+		.suggestion-item.selected {
+			background: #f8fafc;
+		}
+
+		.suggestion-highlight {
+			color: var(--primary-1);
+			font-weight: 600;
+		}
+
+		.suggestion-sol {
+			font-size: 11px;
+			background: #e2e8f0;
+			padding: 2px 6px;
+			border-radius: 4px;
+			color: #475569;
+		}
+
+		/* BACK BUTTON */
+		.back-button {
+			display: inline-flex;
+			align-items: center;
+			gap: 6px;
+			color: var(--white);
+			text-decoration: none;
+			padding: 8px 12px;
+			border-radius: 6px;
+			background: rgba(255, 255, 255, 0.1);
+			font-size: 13px;
+			white-space: nowrap;
+			transition: var(--transition);
+		}
+
+		.back-button:hover {
+			background: rgba(255, 255, 255, 0.2);
+			text-decoration: none;
+		}
+
+		/* FORMAT TOGGLE */
+		.format-toggle {
+			display: flex;
+			background: rgba(255, 255, 255, 0.1);
+			padding: 4px;
+			border-radius: 8px;
+			gap: 4px;
+			margin-right: 12px;
+		}
+
+		.format-btn {
+			padding: 6px 12px;
+			border: none;
+			background: transparent;
+			color: var(--white);
+			font-size: 12px;
+			font-weight: 700;
+			cursor: pointer;
+			border-radius: 6px;
+			transition: var(--transition);
+			text-transform: uppercase;
+			opacity: 0.7;
+		}
+
+		.format-btn.active {
+			background: var(--white);
+			color: var(--primary-1);
+			opacity: 1;
+			box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+		}
+
+		/* LOADING STATES */
+		.loading {
+			opacity: 0.7;
+			position: relative;
+			pointer-events: none;
+		}
+
+		.loading::after {
+			content: "";
+			position: absolute;
+			right: 8px;
+			top: 50%;
+			transform: translateY(-50%);
+			width: 16px;
+			height: 16px;
+			border: 2px solid #e2e8f0;
+			border-top-color: var(--primary-1);
+			border-radius: 50%;
+			animation: spin 0.8s linear infinite;
+		}
+
+		.page-content {
+			max-width: 1400px;
+			margin: 0 auto;
+			padding: 24px;
+		}
+
+		.bm-card {
+			background: #ffffff;
+			border-radius: 16px;
+			padding: 24px;
+			display: grid;
+			grid-template-columns: 140px 1fr;
+			gap: 24px;
+			box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
+		}
+
+		.bm-avatar {
+			width: 120px;
+			height: 120px;
+			border-radius: 16px;
+			overflow: hidden;
+			border: 3px solid #e2e8f0;
+			background: #f1f5f9;
+		}
+
+		.bm-avatar img {
+			width: 100%;
+			height: 100%;
+			object-fit: cover;
+		}
+
+		.bm-title {
+			font-size: 13px;
+			font-weight: 600;
+			color: #64748b;
+			margin-bottom: 4px;
+		}
+
+		.bm-name {
+			font-size: 22px;
+			font-weight: 700;
+			color: #333333;
+		}
+
+		.bm-sub {
+			font-size: 13px;
+			color: #475569;
+			margin-bottom: 16px;
+			display: none;
+		}
+
+		.bm-info-grid {
+			display: grid;
+			grid-template-columns: repeat(3, 1fr);
+			/* 3 equal columns */
+			gap: 10px 20px;
+			/* Row gap, Column gap */
+			font-size: 12px;
+			/* Default font size for this grid */
+		}
+
+		.bm-info-grid>div {
+			padding: 5px 0;
+			/* Add some padding to each item */
+		}
+
+		.bm-info-grid label {
+			display: block;
+			color: #64748b;
+			font-weight: 600;
+			margin-bottom: 2px;
+		}
+
+		.bm-info-grid span {
+			color: #333333;
+			font-weight: 500;
+		}
+
+		.details-row {
+			display: flex;
+			flex-wrap: wrap;
+			gap: 24px;
+			margin-top: 24px;
+		}
+
+		.details-row>section {
+			margin-top: 0;
+			flex: 1;
+			min-width: calc(33.33% - 16px);
+		}
+
+		#branch-data-container>section {
+			margin-top: 24px;
+		}
+
+		#branch-data-container>section:first-child {
+			margin-top: 0;
+		}
+
+		/* New Staff Detail Section Styles */
+		.total-staff-overview-card {
+			background: #ffffff;
+			border-radius: 16px;
+			padding: 0;
+			/* Remove padding to allow button to be full-width */
+			box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
+			display: flex;
+			flex-direction: column;
+		}
+
+		.staff-detail-content {
+			padding: 24px;
+			flex-grow: 1;
+		}
+
+		.total-staff-overview-card h2 {
+			font-size: 16px;
+			font-weight: 600;
+			color: #475569;
+			margin-bottom: 8px;
+			border-bottom: none;
+			padding-bottom: 0;
+		}
+
+		/* Generic Staff Detail Section - Restored padding for other sections */
+		.staff-detail-section {
+			background: #ffffff;
+			border-radius: 16px;
+			padding: 24px;
+			/* Original padding */
+			box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
+		}
+
+		.total-staff-count {
+			font-size: 36px;
+			font-weight: 700;
+			color: #333333;
+			margin-bottom: 16px;
+		}
+
+		/* Comparison Cards */
+		.comparison-cards-container {
+			display: flex;
+			gap: 16px;
+			margin-bottom: 24px;
+			flex-wrap: wrap;
+			/* Allow cards to wrap on smaller screens */
+		}
+
+		.comparison-card {
+			flex: 1;
+			/* Each card takes equal width */
+			background: #f8fafc;
+			border-radius: 12px;
+			padding: 16px;
+			text-align: center;
+			box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+			transition: all 0.2s ease;
+			border: 1px solid #e2e8f0;
+			min-width: 150px;
+			/* Ensure cards don't get too small */
+		}
+
+		.comparison-card .card-title {
+			font-size: 13px;
+			font-weight: 600;
+			color: #64748b;
+			margin-bottom: 8px;
+		}
+
+		.comparison-card .card-value {
+			font-size: 22px;
+			font-weight: 700;
+			color: #333333;
+		}
+
+		/* Comparison Status Colors */
+		.comparison-card.status-green {
+			border-color: #10b981;
+			background-color: #ecfdf5;
+		}
+
+		.comparison-card.status-red {
+			border-color: #ef4444;
+			background-color: #fef2f2;
+		}
+
+		.progress-bar-segmented {
+			display: flex;
+			height: 8px;
+			border-radius: 4px;
+			overflow: hidden;
+			margin-bottom: 24px;
+			background-color: #e2e8f0;
+		}
+
+		.progress-segment {
+			height: 100%;
+			transition: width 0.5s ease-in-out;
+		}
+
+		.bdo-color {
+			background-color: #3b82f6;
+		}
+
+		.ro-color {
+			background-color: #10b981;
+		}
+
+		.ro-color {
+			background-color: #10b981;
+		}
+
+		.bde-color {
+			background-color: #ef4444;
+		}
+
+		/* A new distinct color for BDE */
+
+		.staff-breakdown-list {
+			list-style: none;
+			padding: 0;
+			margin: 0;
+			display: flex;
+			flex-direction: column;
+			gap: 16px;
+		}
+
+		.breakdown-item {
+			display: flex;
+			align-items: center;
+			font-size: 14px;
+		}
+
+		.breakdown-item .color-dot {
+			width: 8px;
+			height: 8px;
+			border-radius: 50%;
+			margin-right: 12px;
+		}
+
+		.breakdown-item .role-name {
+			color: #333333;
+			font-weight: 500;
+		}
+
+		.breakdown-item .role-count {
+			margin-left: auto;
+			color: #333333;
+			font-weight: 600;
+		}
+
+		.view-details-button {
+			background-color: transparent;
+			color: #097c80;
+			border: none;
+			width: fit-content;
+			padding: 8px 0;
+			font-size: 13px;
+			font-weight: 700;
+			cursor: pointer;
+			transition: all 0.2s ease;
+			margin: 15px auto 0 auto;
+			text-decoration: underline;
+			text-transform: uppercase;
+			letter-spacing: 0.5px;
+		}
+
+		.view-details-button:hover {
+			color: var(--primary-2);
+			text-decoration: none;
+		}
+
+		/* Agent Details Spinner */
+		.agent-cards-grid {
+			display: flex;
+			flex-direction: column;
+			gap: 12px;
+			margin-top: 20px;
+		}
+
+		.spinner-card {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			gap: 15px;
+			padding: 16px 20px;
+			width: 100%;
+			background: #f8fafc;
+			border-radius: 12px;
+			border: 1px solid #e2e8f0;
+		}
+
+		.spinner-left-stack {
+			display: flex;
+			flex-direction: column;
+			align-items: flex-start;
+			gap: 6px;
+		}
+
+		.spinner-container {
+			position: relative;
+			width: 85px;
+			height: 85px;
+			flex-shrink: 0;
+		}
+
+		.spinner-svg {
+			transform: rotate(-90deg);
+			width: 100%;
+			height: 100%;
+		}
+
+		.spinner-circle {
+			fill: none;
+			stroke-width: 4;
+		}
+
+		.spinner-background {
+			stroke: #e2e8f0;
+		}
+
+		.spinner-progress {
+			stroke: var(--primary-1);
+			stroke-linecap: round;
+			transition: stroke-dasharray 0.5s ease;
+			animation: subtle-pulse 3s infinite ease-in-out;
+		}
+
+		@keyframes subtle-pulse {
+			0% {
+				opacity: 0.6;
 			}
 
-			* {
-				margin: 0;
-				padding: 0;
-				box-sizing: border-box;
-				-webkit-font-smoothing: antialiased;
-				-moz-osx-font-smoothing: grayscale;
-			}
-
-			body {
-				font-family:
-					-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial,
-					sans-serif;
-				background: #f8fafc;
-				padding-top: 64px;
-			}
-
-			/* HEADER - Compact design */
-			.header {
-				position: fixed;
-				top: 0;
-				left: 0;
-				right: 0;
-				z-index: 1000;
-				background: linear-gradient(135deg, var(--primary-1), var(--primary-2));
-				color: var(--white);
-				box-shadow: 0 2px 8px var(--shadow);
-				min-height: 64px;
-			}
-
-			.header-content {
-				display: grid;
-				grid-template-columns: auto 1fr auto;
-				align-items: center;
-				gap: 20px;
-				padding: 12px 24px;
-				max-width: 1400px;
-				margin: 0 auto;
-			}
-
-			.branch-info {
-				min-width: 200px;
-				max-width: 300px;
-			}
-
-			.branch-name {
-				font-size: 18px;
-				font-weight: 600;
-				line-height: 1.3;
-				white-space: nowrap;
-				overflow: hidden;
-				text-overflow: ellipsis;
-			}
-
-			.branch-meta {
-				font-size: 12px;
-				opacity: 0.9;
-				margin-top: 2px;
-				display: flex;
-				gap: 8px;
-				white-space: nowrap;
-				overflow: hidden;
-				text-overflow: ellipsis;
-			}
-
-			/* SEARCH - Enhanced UX */
-			.branch-search {
-				position: relative;
-				max-width: 500px;
-				margin: 0 auto;
-				width: 100%;
-			}
-
-			.search-container {
-				position: relative;
-				display: flex;
-				background: var(--white);
-				border-radius: 8px;
-				overflow: hidden;
-				box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-				transition: var(--transition);
-			}
-
-			.search-container:focus-within {
-				box-shadow: 0 0 0 2px var(--accent);
-			}
-
-			.search-input {
-				flex: 1;
-				border: none;
-				padding: 10px 14px;
-				font-size: 14px;
-				outline: none;
-				background: transparent;
-				min-width: 0;
-			}
-
-			.search-button {
-				background: var(--accent);
-				border: none;
-				padding: 0 16px;
-				cursor: pointer;
-				display: flex;
-				align-items: center;
-				justify-content: center;
-				min-width: 60px;
-				transition: var(--transition);
-			}
-
-			.search-button:hover {
-				background: #e6c200;
-			}
-
-			.search-button:active {
-				transform: scale(0.98);
-			}
-
-			/* SUGGESTIONS - Virtual scroll ready */
-			.search-suggestions {
-				position: absolute;
-				top: 100%;
-				left: 0;
-				right: 0;
-				background: var(--white);
-				border-radius: 8px;
-				box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-				margin-top: 4px;
-				max-height: 280px;
-				overflow: hidden;
-				display: none;
-				z-index: 1001;
-				color: #333333;
-			}
-
-			.suggestions-container {
-				max-height: 280px;
-				overflow-y: auto;
-				overscroll-behavior: contain;
-				-webkit-overflow-scrolling: touch;
-			}
-
-			.suggestion-item {
-				padding: 10px 14px;
-				cursor: pointer;
-				border-bottom: 1px solid #f1f5f9;
-				font-size: 13px;
-				line-height: 1.4;
-				transition: var(--transition);
-				display: flex;
-				justify-content: space-between;
-				align-items: center;
-			}
-
-			.suggestion-item:last-child {
-				border-bottom: none;
-			}
-
-			.suggestion-item:hover,
-			.suggestion-item.selected {
-				background: #f8fafc;
-			}
-
-			.suggestion-highlight {
-				color: var(--primary-1);
-				font-weight: 600;
-			}
-
-			.suggestion-sol {
-				font-size: 11px;
-				background: #e2e8f0;
-				padding: 2px 6px;
-				border-radius: 4px;
-				color: #475569;
-			}
-
-			/* BACK BUTTON */
-			.back-button {
-				display: inline-flex;
-				align-items: center;
-				gap: 6px;
-				color: var(--white);
-				text-decoration: none;
-				padding: 8px 12px;
-				border-radius: 6px;
-				background: rgba(255, 255, 255, 0.1);
-				font-size: 13px;
-				white-space: nowrap;
-				transition: var(--transition);
-			}
-
-			.back-button:hover {
-				background: rgba(255, 255, 255, 0.2);
-				text-decoration: none;
-			}
-
-			/* FORMAT TOGGLE */
-			.format-toggle {
-				display: flex;
-				background: rgba(255, 255, 255, 0.1);
-				padding: 4px;
-				border-radius: 8px;
-				gap: 4px;
-				margin-right: 12px;
-			}
-
-			.format-btn {
-				padding: 6px 12px;
-				border: none;
-				background: transparent;
-				color: var(--white);
-				font-size: 12px;
-				font-weight: 700;
-				cursor: pointer;
-				border-radius: 6px;
-				transition: var(--transition);
-				text-transform: uppercase;
-				opacity: 0.7;
-			}
-
-			.format-btn.active {
-				background: var(--white);
-				color: var(--primary-1);
+			50% {
 				opacity: 1;
-				box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 			}
 
-			/* LOADING STATES */
-			.loading {
-				opacity: 0.7;
-				position: relative;
-				pointer-events: none;
+			100% {
+				opacity: 0.6;
+			}
+		}
+
+		.spinner-percentage {
+			position: absolute;
+			top: 50%;
+			left: 50%;
+			transform: translate(-50%, -50%);
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			justify-content: center;
+			line-height: 1;
+		}
+
+		.perc-val {
+			font-size: 16px;
+			font-weight: 800;
+			color: var(--primary-1);
+		}
+
+		.perc-label {
+			font-size: 9px;
+			font-weight: 700;
+			color: #64748b;
+			text-transform: uppercase;
+			margin-bottom: 2px;
+		}
+
+		.spinner-label {
+			font-size: 16px;
+			font-weight: 700;
+			color: #333333;
+		}
+
+		.spinner-data {
+			font-size: 14px;
+			color: #64748b;
+			margin-top: 4px;
+		}
+
+		.count-active {
+			font-size: 22px;
+			font-weight: 800;
+			color: #097c80;
+		}
+
+		.count-total {
+			font-size: 15px;
+			font-weight: 600;
+			color: #64748b;
+		}
+
+		.count-inactive {
+			font-size: 11px;
+			font-weight: 700;
+			color: #dc2626;
+			margin-top: 2px;
+			display: block;
+		}
+
+		/* Category Card Specific Styles */
+		.category-tabs {
+			display: flex;
+			gap: 4px;
+			background: #f1f5f9;
+			padding: 4px;
+			border-radius: 8px;
+		}
+
+		.category-tab {
+			padding: 6px 12px;
+			cursor: pointer;
+			border-radius: 6px;
+			font-size: 11px;
+			font-weight: 700;
+			color: #64748b;
+			transition: all 0.2s;
+			text-transform: uppercase;
+		}
+
+		.category-tab.active {
+			background: #ffffff;
+			color: var(--primary-1);
+			box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+		}
+
+		.category-hierarchy {
+			display: grid;
+			grid-template-columns: repeat(3, 1fr);
+			gap: 6px;
+			margin-top: 15px;
+		}
+
+		.hierarchy-badge {
+			padding: 10px 4px;
+			border-radius: 6px;
+			font-size: 11px;
+			font-weight: 700;
+			background: #f8fafc;
+			color: #94a3b8;
+			border: 1px solid #e2e8f0;
+			text-transform: uppercase;
+			text-align: center;
+			display: flex;
+			flex-direction: column;
+			justify-content: center;
+			gap: 4px;
+			line-height: 1.2;
+		}
+
+		.hierarchy-badge .criteria {
+			font-size: 9px;
+			font-weight: 600;
+			opacity: 0.9;
+		}
+
+		.hierarchy-badge.active {
+			background: rgba(9, 124, 128, 0.1);
+			color: var(--primary-1);
+			border-color: var(--primary-1);
+		}
+
+		/* Financial Table Styles */
+		.financial-table-container {
+			margin-top: 15px;
+			overflow: hidden;
+		}
+
+		/* Manpower Details Scrolling Fix */
+		#manpower-details-section {
+			max-height: calc(100vh - 100px);
+			display: flex;
+			flex-direction: column;
+			overflow: hidden;
+			/* Prevent double scrollbars */
+			scroll-margin-top: 100px;
+		}
+
+		#manpower-details-section .manpower-header-sticky {
+			position: sticky;
+			top: 0;
+			background: #ffffff;
+			z-index: 30;
+			margin-bottom: 0 !important;
+			padding-bottom: 15px;
+			flex-shrink: 0;
+		}
+
+		#manpower-details-section .financial-table-container {
+			overflow-y: auto;
+			flex-grow: 1;
+			margin-top: 0;
+			scrollbar-width: thin;
+			scrollbar-color: var(--primary-1) #f1f5f9;
+		}
+
+		#manpower-details-section .financial-table thead th {
+			position: sticky;
+			top: 0;
+			z-index: 20;
+			background: #f8fafc;
+			box-shadow: inset 0 -2px 0 #e2e8f0;
+		}
+
+		#manpower-details-section .financial-table-container::-webkit-scrollbar {
+			width: 6px;
+		}
+
+		#manpower-details-section .financial-table-container::-webkit-scrollbar-track {
+			background: #f1f5f9;
+		}
+
+		#manpower-details-section .financial-table-container::-webkit-scrollbar-thumb {
+			background: var(--primary-1);
+			border-radius: 3px;
+		}
+
+		.financial-table {
+			width: 100%;
+			border-collapse: separate;
+			border-spacing: 0;
+			font-size: 16px;
+			table-layout: auto;
+		}
+
+		.financial-table th {
+			background: #f8fafc;
+			color: #64748b;
+			font-weight: 700;
+			text-transform: uppercase;
+			font-size: 12px;
+			padding: 16px 12px;
+			text-align: left;
+			border-bottom: 2px solid #e2e8f0;
+		}
+
+		.financial-table td {
+			padding: 14px 12px;
+			border-bottom: 1px solid #f1f5f9;
+			color: #333333;
+			font-weight: 500;
+			transition: all 0.2s ease;
+			position: relative;
+		}
+
+		.financial-table tr.sub-item td:first-child {
+			padding-left: 36px;
+		}
+
+		.financial-table .amount-col {
+			text-align: right;
+			font-variant-numeric: tabular-nums;
+			font-weight: 700;
+			white-space: nowrap;
+		}
+
+		.financial-table .bar-col {
+			width: 25%;
+			padding: 0 12px;
+			vertical-align: middle;
+			text-align: right;
+		}
+
+		.financial-table .bar-wrapper {
+			display: flex;
+			align-items: center;
+			justify-content: flex-end;
+			gap: 10px;
+		}
+
+		.financial-table .data-wrapper {
+			display: flex;
+			flex-direction: column;
+			align-items: flex-end;
+			gap: 2px;
+		}
+
+		.financial-table .perc-share {
+			font-size: 11px;
+			color: #64748b;
+			font-weight: 600;
+		}
+
+		.financial-table .comp-bar-bg {
+			width: 100%;
+			height: 6px;
+			background: #f1f5f9;
+			border-radius: 3px;
+			overflow: hidden;
+		}
+
+		.financial-table .comp-bar-fill {
+			height: 100%;
+			background: var(--primary-1);
+			border-radius: 3px;
+			transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+		}
+
+		/* Glitch-free hover: No layout shift */
+		.financial-table tr:hover td {
+			background-color: #fffbeb !important;
+			box-shadow: inset 0 1px 0 #fbbf24, inset 0 -1px 0 #fbbf24;
+		}
+
+		.financial-table tr:hover td:first-child {
+			box-shadow: inset 2px 0 0 #fbbf24, inset 0 1px 0 #fbbf24, inset 0 -1px 0 #fbbf24;
+			border-top-left-radius: 4px;
+			border-bottom-left-radius: 4px;
+		}
+
+		.financial-table tr:hover td:last-child {
+			box-shadow: inset -2px 0 0 #fbbf24, inset 0 1px 0 #fbbf24, inset 0 -1px 0 #fbbf24;
+			border-top-right-radius: 4px;
+			border-bottom-right-radius: 4px;
+		}
+
+		.financial-table tr:hover .comp-bar-bg {
+			background: #e2e8f0;
+		}
+
+		.financial-table tr:nth-child(even) td {
+			background-color: #fafbfd;
+		}
+
+		.financial-table tr:last-child td {
+			border-bottom: none;
+		}
+
+		.financial-table tr.total-row {
+			background: #f0fdfa !important;
+		}
+
+		.financial-table tr.total-row td {
+			color: var(--primary-1);
+			font-weight: 800;
+			font-size: 17px;
+			border-top: 2px solid #ccfbf1;
+			border-bottom: 2px solid #ccfbf1;
+		}
+
+		/* PIP Row Highlight - Overrides nth-child striping */
+		.financial-table tr.pip-row td {
+			background-color: #fee2e2 !important;
+			border-bottom: 1px solid #fecaca;
+		}
+
+		/* Pending Animation */
+		.pending-animation td {
+			background-color: #fef2f2 !important;
+			animation: pulse-red-border 2s infinite;
+			color: #b91c1c !important;
+		}
+
+		@keyframes pulse-red-border {
+			0% {
+				box-shadow: inset 0 1px 0 #fee2e2, inset 0 -1px 0 #fee2e2;
 			}
 
-			.loading::after {
-				content: "";
-				position: absolute;
-				right: 8px;
-				top: 50%;
-				transform: translateY(-50%);
-				width: 16px;
-				height: 16px;
-				border: 2px solid #e2e8f0;
-				border-top-color: var(--primary-1);
-				border-radius: 50%;
-				animation: spin 0.8s linear infinite;
-			}
-			.page-content {
-				max-width: 1400px;
-				margin: 0 auto;
-				padding: 24px;
+			50% {
+				box-shadow: inset 0 2px 0 #ef4444, inset 0 -2px 0 #ef4444;
 			}
 
+			100% {
+				box-shadow: inset 0 1px 0 #fee2e2, inset 0 -1px 0 #fee2e2;
+			}
+		}
+
+		.pending-animation td:first-child {
+			animation: pulse-red-border-first 2s infinite;
+			border-top-left-radius: 4px;
+			border-bottom-left-radius: 4px;
+		}
+
+		@keyframes pulse-red-border-first {
+			0% {
+				box-shadow: inset 2px 0 0 #fee2e2, inset 0 1px 0 #fee2e2, inset 0 -1px 0 #fee2e2;
+			}
+
+			50% {
+				box-shadow: inset 3px 0 0 #ef4444, inset 0 2px 0 #ef4444, inset 0 -2px 0 #ef4444;
+			}
+
+			100% {
+				box-shadow: inset 2px 0 0 #fee2e2, inset 0 1px 0 #fee2e2, inset 0 -1px 0 #fee2e2;
+			}
+		}
+
+		.pending-animation td:last-child {
+			animation: pulse-red-border-last 2s infinite;
+			border-top-right-radius: 4px;
+			border-bottom-right-radius: 4px;
+		}
+
+		@keyframes pulse-red-border-last {
+			0% {
+				box-shadow: inset -2px 0 0 #fee2e2, inset 0 1px 0 #fee2e2, inset 0 -1px 0 #fee2e2;
+			}
+
+			50% {
+				box-shadow: inset -3px 0 0 #ef4444, inset 0 2px 0 #ef4444, inset 0 -2px 0 #ef4444;
+			}
+
+			100% {
+				box-shadow: inset -2px 0 0 #fee2e2, inset 0 1px 0 #fee2e2, inset 0 -1px 0 #fee2e2;
+			}
+		}
+
+		.financial-table .label-col {
+			display: flex;
+			align-items: center;
+			gap: 12px;
+		}
+
+		.acc-dot {
+			width: 8px;
+			height: 8px;
+			border-radius: 50%;
+			flex-shrink: 0;
+		}
+
+		.acc-dot.sa {
+			background: #3b82f6;
+		}
+
+		.acc-dot.ca {
+			background: #10b981;
+		}
+
+		.acc-dot.fd {
+			background: #f59e0b;
+		}
+
+		.acc-dot.rd {
+			background: #ef4444;
+		}
+
+		.acc-dot.dds {
+			background: #8b5cf6;
+		}
+
+		.acc-dot.smbg {
+			background: #ec4899;
+		}
+
+		/* FY Filter Styles */
+		.fy-filter-wrapper {
+			display: flex;
+			align-items: center;
+			gap: 10px;
+			margin-top: 12px;
+		}
+
+		.fy-label {
+			font-size: 10px;
+			font-weight: 800;
+			color: #64748b;
+			text-transform: uppercase;
+			letter-spacing: 0.5px;
+		}
+
+		.fy-select-compact {
+			background: #f1f5f9;
+			border: 1px solid #e2e8f0;
+			border-radius: 6px;
+			padding: 4px 8px;
+			font-size: 11px;
+			font-weight: 700;
+			color: #333333;
+			cursor: pointer;
+			outline: none;
+			transition: all 0.2s;
+		}
+
+		.fy-select-compact:hover {
+			background: #e2e8f0;
+		}
+
+		/* Modern Staff Overflow UI */
+		.total-staff-overview-card {
+			background: #ffffff;
+			border-radius: 16px;
+			box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
+			display: flex;
+			flex-direction: column;
+			overflow: hidden;
+		}
+
+		.staff-header-flex {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			margin-bottom: 35px;
+		}
+
+		.status-badge {
+			padding: 5px 12px;
+			border-radius: 20px;
+			font-size: 11px;
+			font-weight: bold;
+			text-transform: uppercase;
+		}
+
+		.status-badge.overstaffed {
+			background: #fee2e2;
+			color: #dc2626;
+			border: 1px solid #fecaca;
+		}
+
+		.status-badge.optimal {
+			background: #ecfdf5;
+			color: #10b981;
+			border: 1px solid #d1fae5;
+		}
+
+		/* The Gauge Logic */
+		.gauge-wrapper {
+			position: relative;
+			height: 28px;
+			background: #f1f5f9;
+			border-radius: 14px;
+			display: flex;
+			overflow: hidden;
+			margin: 15px 0 5px 0;
+		}
+
+		.bar-blue {
+			background: #097c80;
+			height: 100%;
+			transition: width 0.6s ease;
+		}
+
+		.bar-red {
+			background: #dc2626;
+			height: 100%;
+			transition: width 0.6s ease;
+			animation: subtle-pulse 3s infinite ease-in-out;
+		}
+
+		.budget-line {
+			position: absolute;
+			top: 0;
+			bottom: 0;
+			width: 2px;
+			border-left: 2px dashed rgba(255, 255, 255, 0.8);
+			z-index: 5;
+		}
+
+		.excess-indicator {
+			position: absolute;
+			top: -22px;
+			font-size: 11px;
+			font-weight: 800;
+			color: #dc2626;
+			white-space: nowrap;
+			transform: translateX(-50%);
+			background: #fee2e2;
+			padding: 2px 6px;
+			border-radius: 4px;
+			border: 1px solid #fecaca;
+			z-index: 10;
+		}
+
+		.excess-indicator::after {
+			content: '';
+			position: absolute;
+			top: 100%;
+			left: 50%;
+			transform: translateX(-50%);
+			border-width: 4px;
+			border-style: solid;
+			border-color: #fecaca transparent transparent transparent;
+		}
+
+		.manpower-percentage {
+			font-size: 20px;
+			font-weight: 900;
+			color: #333333;
+			text-align: center;
+			margin-top: 12px;
+		}
+
+		.gauge-labels {
+			display: flex;
+			justify-content: space-between;
+			margin-top: 4px;
+			font-size: 13px;
+			font-weight: 700;
+			text-transform: uppercase;
+		}
+
+		.staff-main-count {
+			font-size: 42px;
+			font-weight: 800;
+			color: #333333;
+			margin: 10px 0;
+		}
+
+		.staff-meta-text {
+			color: #64748b;
+			font-size: 14px;
+			margin-bottom: 20px;
+		}
+
+		/* Independent Designation Chips */
+		.designation-chips {
+			display: flex;
+			gap: 10px;
+			margin-top: auto;
+			padding-top: 20px;
+		}
+
+		.chip {
+			flex: 1;
+			background: #f8fafc;
+			padding: 10px;
+			border-radius: 10px;
+			text-align: center;
+			border: 1px solid #e2e8f0;
+		}
+
+		.chip-label {
+			display: block;
+			font-size: 11px;
+			color: #64748b;
+			text-transform: uppercase;
+			font-weight: 700;
+		}
+
+		.chip-value {
+			font-size: 18px;
+			font-weight: 700;
+			color: #333333;
+		}
+
+		@media (max-width: 992px) {
+			.details-row {
+				flex-direction: column;
+				gap: 30px;
+			}
+
+			.details-row>section {
+				min-width: 100%;
+			}
+		}
+
+		@media (max-width: 768px) {
 			.bm-card {
-				background: #ffffff;
-				border-radius: 16px;
-				padding: 24px;
-				display: grid;
-				grid-template-columns: 140px 1fr;
-				gap: 24px;
-				box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
+				grid-template-columns: 1fr;
+				text-align: center;
 			}
 
 			.bm-avatar {
-				width: 120px;
-				height: 120px;
-				border-radius: 16px;
-				overflow: hidden;
-				border: 3px solid #e2e8f0;
-				background: #f1f5f9;
+				margin: 0 auto;
+			}
+		}
+
+		@keyframes spin {
+			to {
+				transform: translateY(-50%) rotate(360deg);
+			}
+		}
+
+		/* RESPONSIVE */
+		@media (max-width: 768px) {
+			body {
+				padding-top: 120px;
 			}
 
-			.bm-avatar img {
-				width: 100%;
-				height: 100%;
-				object-fit: cover;
+			.header {
+				min-height: 120px;
 			}
 
-			.bm-title {
-				font-size: 13px;
-				font-weight: 600;
-				color: #64748b;
-				margin-bottom: 4px;
-			}
-
-			.bm-name {
-				font-size: 22px;
-				font-weight: 700;
-				color: #333333;
-			}
-
-			.bm-sub {
-				font-size: 13px;
-				color: #475569;
-				margin-bottom: 16px;
-				display: none;
-			}
-
-			.bm-info-grid {
-				display: grid;
-				grid-template-columns: repeat(3, 1fr); /* 3 equal columns */
-				gap: 10px 20px; /* Row gap, Column gap */
-				font-size: 12px; /* Default font size for this grid */
-			}
-
-			.bm-info-grid > div {
-				padding: 5px 0; /* Add some padding to each item */
-			}
-
-			.bm-info-grid label {
-				display: block;
-				color: #64748b;
-				font-weight: 600;
-				margin-bottom: 2px;
-			}
-
-			.bm-info-grid span {
-				color: #333333;
-				font-weight: 500;
-			}
-
-			.details-row {
-				display: flex;
-				flex-wrap: wrap;
-				gap: 24px;
-				margin-top: 24px;
-			}
-
-			.details-row > section {
-				margin-top: 0;
-				flex: 1;
-				min-width: calc(33.33% - 16px);
-			}
-
-			#branch-data-container > section {
-				margin-top: 24px;
-			}
-
-			#branch-data-container > section:first-child {
-				margin-top: 0;
-			}
-
-			/* New Staff Detail Section Styles */
-			.total-staff-overview-card {
-				background: #ffffff;
-				border-radius: 16px;
-				padding: 0; /* Remove padding to allow button to be full-width */
-				box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
-				display: flex;
-				flex-direction: column;
-			}
-			.staff-detail-content {
-				padding: 24px;
-				flex-grow: 1;
-			}
-
-			.total-staff-overview-card h2 {
-				font-size: 16px;
-				font-weight: 600;
-				color: #475569;
-				margin-bottom: 8px;
-				border-bottom: none;
-				padding-bottom: 0;
-			}
-			/* Generic Staff Detail Section - Restored padding for other sections */
-			.staff-detail-section {
-				background: #ffffff;
-				border-radius: 16px;
-				padding: 24px; /* Original padding */
-				box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
-			}
-
-			.total-staff-count {
-				font-size: 36px;
-				font-weight: 700;
-				color: #333333;
-				margin-bottom: 16px;
-			}
-			/* Comparison Cards */
-			.comparison-cards-container {
-				display: flex;
-				gap: 16px;
-				margin-bottom: 24px;
-				flex-wrap: wrap; /* Allow cards to wrap on smaller screens */
-			}
-
-			.comparison-card {
-				flex: 1; /* Each card takes equal width */
-				background: #f8fafc;
-				border-radius: 12px;
-				padding: 16px;
-				text-align: center;
-				box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
-				transition: all 0.2s ease;
-				border: 1px solid #e2e8f0;
-				min-width: 150px; /* Ensure cards don't get too small */
-			}
-
-			.comparison-card .card-title {
-				font-size: 13px;
-				font-weight: 600;
-				color: #64748b;
-				margin-bottom: 8px;
-			}
-
-			.comparison-card .card-value {
-				font-size: 22px;
-				font-weight: 700;
-				color: #333333;
-			}
-
-			/* Comparison Status Colors */
-			.comparison-card.status-green {
-				border-color: #10b981;
-				background-color: #ecfdf5;
-			}
-
-			.comparison-card.status-red {
-				border-color: #ef4444;
-				background-color: #fef2f2;
-			}
-			.progress-bar-segmented {
-				display: flex;
-				height: 8px;
-				border-radius: 4px;
-				overflow: hidden;
-				margin-bottom: 24px;
-				background-color: #e2e8f0;
-			}
-
-			.progress-segment {
-				height: 100%;
-				transition: width 0.5s ease-in-out;
-			}
-
-			.bdo-color { background-color: #3b82f6; }
-			.ro-color { background-color: #10b981; }
-			.ro-color { background-color: #10b981; }
-			.bde-color { background-color: #ef4444; } /* A new distinct color for BDE */
-
-			.staff-breakdown-list {
-				list-style: none;
-				padding: 0;
-				margin: 0;
-				display: flex;
-				flex-direction: column;
-				gap: 16px;
-			}
-
-			.breakdown-item {
-				display: flex;
-				align-items: center;
-				font-size: 14px;
-			}
-
-			.breakdown-item .color-dot {
-				width: 8px;
-				height: 8px;
-				border-radius: 50%;
-				margin-right: 12px;
-			}
-
-			.breakdown-item .role-name {
-				color: #333333;
-				font-weight: 500;
-			}
-
-			.breakdown-item .role-count {
-				margin-left: auto;
-				color: #333333;
-				font-weight: 600;
-			}
-			.view-details-button {
-				background-color: transparent;
-				color: #097c80;
-				border: none;
-				width: fit-content;
-				padding: 8px 0;
-				font-size: 13px;
-				font-weight: 700;
-				cursor: pointer;
-				transition: all 0.2s ease;
-				margin: 15px auto 0 auto;
-				text-decoration: underline;
-				text-transform: uppercase;
-				letter-spacing: 0.5px;
-			}
-			.view-details-button:hover {
-				color: var(--primary-2);
-				text-decoration: none;
-			}
-
-			/* Agent Details Spinner */
-			.agent-cards-grid {
-				display: flex;
-				flex-direction: column;
+			.header-content {
+				grid-template-columns: 1fr;
 				gap: 12px;
-				margin-top: 20px;
+				padding: 12px 16px;
 			}
 
-			.spinner-card {
-				display: flex;
-				align-items: center;
-				justify-content: space-between;
-				gap: 15px;
-				padding: 16px 20px;
-				width: 100%;
-				background: #f8fafc;
-				border-radius: 12px;
-				border: 1px solid #e2e8f0;
-			}
-
-			.spinner-left-stack {
-				display: flex;
-				flex-direction: column;
-				align-items: flex-start;
-				gap: 6px;
-			}
-
-			.spinner-container {
-				position: relative;
-				width: 85px;
-				height: 85px;
-				flex-shrink: 0;
-			}
-
-			.spinner-svg {
-				transform: rotate(-90deg);
-				width: 100%;
-				height: 100%;
-			}
-
-			.spinner-circle {
-				fill: none;
-				stroke-width: 4;
-			}
-
-			.spinner-background {
-				stroke: #e2e8f0;
-			}
-
-			.spinner-progress {
-				stroke: var(--primary-1);
-				stroke-linecap: round;
-				transition: stroke-dasharray 0.5s ease;
-				animation: subtle-pulse 3s infinite ease-in-out;
-			}
-
-			@keyframes subtle-pulse {
-				0% { opacity: 0.6; }
-				50% { opacity: 1; }
-				100% { opacity: 0.6; }
-			}
-
-			.spinner-percentage {
-				position: absolute;
-				top: 50%;
-				left: 50%;
-				transform: translate(-50%, -50%);
-				display: flex;
-				flex-direction: column;
-				align-items: center;
-				justify-content: center;
-				line-height: 1;
-			}
-			.perc-val {
-				font-size: 16px;
-				font-weight: 800;
-				color: var(--primary-1);
-			}
-			.perc-label {
-				font-size: 9px;
-				font-weight: 700;
-				color: #64748b;
-				text-transform: uppercase;
-				margin-bottom: 2px;
-			}
-
-			.spinner-label {
-				font-size: 16px;
-				font-weight: 700;
-				color: #333333;
-			}
-
-			.spinner-data {
-				font-size: 14px;
-				color: #64748b;
-				margin-top: 4px;
-			}
-			.count-active {
-				font-size: 22px;
-				font-weight: 800;
-				color: #097c80;
-			}
-			.count-total {
-				font-size: 15px;
-				font-weight: 600;
-				color: #64748b;
-			}
-			.count-inactive {
-				font-size: 11px;
-				font-weight: 700;
-				color: #dc2626;
-				margin-top: 2px;
-				display: block;
-			}
-
-			/* Category Card Specific Styles */
-			.category-tabs {
-				display: flex;
-				gap: 4px;
-				background: #f1f5f9;
-				padding: 4px;
-				border-radius: 8px;
-			}
-			.category-tab {
-				padding: 6px 12px;
-				cursor: pointer;
-				border-radius: 6px;
-				font-size: 11px;
-				font-weight: 700;
-				color: #64748b;
-				transition: all 0.2s;
-				text-transform: uppercase;
-			}
-			.category-tab.active {
-				background: #ffffff;
-				color: var(--primary-1);
-				box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-			}
-
-			.category-hierarchy {
-				display: grid;
-				grid-template-columns: repeat(3, 1fr);
-				gap: 6px;
-				margin-top: 15px;
-			}
-			.hierarchy-badge {
-				padding: 10px 4px;
-				border-radius: 6px;
-				font-size: 11px;
-				font-weight: 700;
-				background: #f8fafc;
-				color: #94a3b8;
-				border: 1px solid #e2e8f0;
-				text-transform: uppercase;
+			.branch-info {
+				max-width: 100%;
 				text-align: center;
-				display: flex;
-				flex-direction: column;
-				justify-content: center;
-				gap: 4px;
-				line-height: 1.2;
-			}
-			.hierarchy-badge .criteria {
-				font-size: 9px;
-				font-weight: 600;
-				opacity: 0.9;
-			}
-							.hierarchy-badge.active {
-								background: rgba(9, 124, 128, 0.1);
-								color: var(--primary-1);
-								border-color: var(--primary-1);
-							}
-			
-							/* Financial Table Styles */
-							.financial-table-container {
-								margin-top: 15px;
-								overflow: hidden;
-							}
-
-							/* Manpower Details Scrolling Fix */
-							#manpower-details-section {
-								max-height: calc(100vh - 100px);
-								display: flex;
-								flex-direction: column;
-								overflow: hidden; /* Prevent double scrollbars */
-								scroll-margin-top: 100px;
-							}
-
-							#manpower-details-section .manpower-header-sticky {
-								position: sticky;
-								top: 0;
-								background: #ffffff;
-								z-index: 30;
-								margin-bottom: 0 !important;
-								padding-bottom: 15px;
-								flex-shrink: 0;
-							}
-
-							#manpower-details-section .financial-table-container {
-								overflow-y: auto;
-								flex-grow: 1;
-								margin-top: 0;
-								scrollbar-width: thin;
-								scrollbar-color: var(--primary-1) #f1f5f9;
-							}
-
-							#manpower-details-section .financial-table thead th {
-								position: sticky;
-								top: 0;
-								z-index: 20;
-								background: #f8fafc;
-								box-shadow: inset 0 -2px 0 #e2e8f0;
-							}
-
-							#manpower-details-section .financial-table-container::-webkit-scrollbar {
-								width: 6px;
-							}
-							#manpower-details-section .financial-table-container::-webkit-scrollbar-track {
-								background: #f1f5f9;
-							}
-							#manpower-details-section .financial-table-container::-webkit-scrollbar-thumb {
-								background: var(--primary-1);
-								border-radius: 3px;
-							}
-															.financial-table {
-																width: 100%;
-																border-collapse: separate;
-																border-spacing: 0;
-																font-size: 16px;
-																table-layout: auto;
-															}
-															.financial-table th {
-																background: #f8fafc;
-																color: #64748b;
-																font-weight: 700;
-																text-transform: uppercase;
-																font-size: 12px;
-																padding: 16px 12px;
-																text-align: left;
-																border-bottom: 2px solid #e2e8f0;
-															}
-																																		.financial-table td {
-																																			padding: 14px 12px;
-																																			border-bottom: 1px solid #f1f5f9;
-																																			color: #333333;
-																																			font-weight: 500;
-																																			transition: all 0.2s ease;
-																																			position: relative;
-																																		}
-																																		.financial-table tr.sub-item td:first-child {
-																																			padding-left: 36px;
-																																		}
-																																		.financial-table .amount-col {
-																																			text-align: right;
-																																			font-variant-numeric: tabular-nums;
-																																			font-weight: 700;
-																																			white-space: nowrap;
-																																		}
-																																						.financial-table .bar-col {
-																																							width: 25%;
-																																							padding: 0 12px;
-																																							vertical-align: middle;
-																																							text-align: right;
-																																						}
-																																						.financial-table .bar-wrapper {
-																																							display: flex;
-																																							align-items: center;
-																																							justify-content: flex-end;
-																																							gap: 10px;
-																																						}																																		.financial-table .data-wrapper {
-																																			display: flex;
-																																			flex-direction: column;
-																																			align-items: flex-end;
-																																			gap: 2px;
-																																		}
-																																		.financial-table .perc-share {
-																																			font-size: 11px;
-																																			color: #64748b;
-																																			font-weight: 600;
-																																		}
-																																		.financial-table .comp-bar-bg {
-																																			width: 100%;
-																																			height: 6px;
-																																			background: #f1f5f9;
-																																			border-radius: 3px;
-																																			overflow: hidden;
-																																		}
-																																		.financial-table .comp-bar-fill {
-																																			height: 100%;
-																																			background: var(--primary-1);
-																																			border-radius: 3px;
-																																			transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
-																																		}
-																														
-																																		/* Glitch-free hover: No layout shift */
-																																		.financial-table tr:hover td {
-																																			background-color: #fffbeb !important;
-																																			box-shadow: inset 0 1px 0 #fbbf24, inset 0 -1px 0 #fbbf24;
-																																		}
-																																		.financial-table tr:hover td:first-child {
-																																			box-shadow: inset 2px 0 0 #fbbf24, inset 0 1px 0 #fbbf24, inset 0 -1px 0 #fbbf24;
-																																			border-top-left-radius: 4px;
-																																			border-bottom-left-radius: 4px;
-																																		}
-																																		.financial-table tr:hover td:last-child {
-																																			box-shadow: inset -2px 0 0 #fbbf24, inset 0 1px 0 #fbbf24, inset 0 -1px 0 #fbbf24;
-																																			border-top-right-radius: 4px;
-																																			border-bottom-right-radius: 4px;
-																																		}
-																																		.financial-table tr:hover .comp-bar-bg {
-																																			background: #e2e8f0;
-																																		}															.financial-table tr:nth-child(even) td {
-																background-color: #fafbfd;
-															}
-															.financial-table tr:last-child td {
-																border-bottom: none;
-															}
-															.financial-table tr.total-row {
-																background: #f0fdfa !important;
-															}
-															.financial-table tr.total-row td {
-																color: var(--primary-1);
-																font-weight: 800;
-																font-size: 17px;
-																border-top: 2px solid #ccfbf1;
-																border-bottom: 2px solid #ccfbf1;
-															}
-
-                                                            /* PIP Row Highlight - Overrides nth-child striping */
-                                                            .financial-table tr.pip-row td {
-                                                                background-color: #fee2e2 !important;
-                                                                border-bottom: 1px solid #fecaca;
-                                                            }
-
-															/* Pending Animation */
-															.pending-animation td {
-																background-color: #fef2f2 !important;
-																animation: pulse-red-border 2s infinite;
-																color: #b91c1c !important;
-															}
-															
-															@keyframes pulse-red-border {
-																0% {
-																	box-shadow: inset 0 1px 0 #fee2e2, inset 0 -1px 0 #fee2e2;
-																}
-																50% {
-																	box-shadow: inset 0 2px 0 #ef4444, inset 0 -2px 0 #ef4444;
-																}
-																100% {
-																	box-shadow: inset 0 1px 0 #fee2e2, inset 0 -1px 0 #fee2e2;
-																}
-															}
-
-															.pending-animation td:first-child {
-																animation: pulse-red-border-first 2s infinite;
-																border-top-left-radius: 4px;
-																border-bottom-left-radius: 4px;
-															}
-
-															@keyframes pulse-red-border-first {
-																0% {
-																	box-shadow: inset 2px 0 0 #fee2e2, inset 0 1px 0 #fee2e2, inset 0 -1px 0 #fee2e2;
-																}
-																50% {
-																	box-shadow: inset 3px 0 0 #ef4444, inset 0 2px 0 #ef4444, inset 0 -2px 0 #ef4444;
-																}
-																100% {
-																	box-shadow: inset 2px 0 0 #fee2e2, inset 0 1px 0 #fee2e2, inset 0 -1px 0 #fee2e2;
-																}
-															}
-
-															.pending-animation td:last-child {
-																animation: pulse-red-border-last 2s infinite;
-																border-top-right-radius: 4px;
-																border-bottom-right-radius: 4px;
-															}
-
-															@keyframes pulse-red-border-last {
-																0% {
-																	box-shadow: inset -2px 0 0 #fee2e2, inset 0 1px 0 #fee2e2, inset 0 -1px 0 #fee2e2;
-																}
-																50% {
-																	box-shadow: inset -3px 0 0 #ef4444, inset 0 2px 0 #ef4444, inset 0 -2px 0 #ef4444;
-																}
-																100% {
-																	box-shadow: inset -2px 0 0 #fee2e2, inset 0 1px 0 #fee2e2, inset 0 -1px 0 #fee2e2;
-																}
-															}
-															
-															.financial-table .label-col {
-																display: flex;
-																align-items: center;
-																gap: 12px;
-															}
-															.acc-dot {
-																width: 8px;
-																height: 8px;
-																border-radius: 50%;
-																flex-shrink: 0;
-															}
-							.acc-dot.sa { background: #3b82f6; }
-							.acc-dot.ca { background: #10b981; }
-							.acc-dot.fd { background: #f59e0b; }
-							.acc-dot.rd { background: #ef4444; }
-							.acc-dot.dds { background: #8b5cf6; }
-							.acc-dot.smbg { background: #ec4899; }
-			
-							/* FY Filter Styles */
-							.fy-filter-wrapper {				display: flex;
-				align-items: center;
-				gap: 10px;
-				margin-top: 12px;
-			}
-			.fy-label {
-				font-size: 10px;
-				font-weight: 800;
-				color: #64748b;
-				text-transform: uppercase;
-				letter-spacing: 0.5px;
-			}
-			.fy-select-compact {
-				background: #f1f5f9;
-				border: 1px solid #e2e8f0;
-				border-radius: 6px;
-				padding: 4px 8px;
-				font-size: 11px;
-				font-weight: 700;
-				color: #333333;
-				cursor: pointer;
-				outline: none;
-				transition: all 0.2s;
-			}
-			.fy-select-compact:hover {
-				background: #e2e8f0;
 			}
 
-/* Modern Staff Overflow UI */
-.total-staff-overview-card {
-    background: #ffffff;
-    border-radius: 16px;
-    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-}
-
-.staff-header-flex {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 35px;
-}
-
-.status-badge {
-    padding: 5px 12px;
-    border-radius: 20px;
-    font-size: 11px;
-    font-weight: bold;
-    text-transform: uppercase;
-}
-
-.status-badge.overstaffed { 
-    background: #fee2e2; 
-    color: #dc2626; 
-    border: 1px solid #fecaca; 
-}
-
-.status-badge.optimal { 
-    background: #ecfdf5; 
-    color: #10b981; 
-    border: 1px solid #d1fae5; 
-}
-
-/* The Gauge Logic */
-.gauge-wrapper {
-    position: relative;
-    height: 28px;
-    background: #f1f5f9;
-    border-radius: 14px;
-    display: flex;
-    overflow: hidden;
-    margin: 15px 0 5px 0;
-}
-
-.bar-blue { 
-    background: #097c80; 
-    height: 100%; 
-    transition: width 0.6s ease; 
-}
-
-.bar-red { 
-    background: #dc2626; 
-    height: 100%; 
-    transition: width 0.6s ease; 
-    animation: subtle-pulse 3s infinite ease-in-out;
-}
-
-.budget-line {
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    width: 2px;
-    border-left: 2px dashed rgba(255,255,255,0.8);
-    z-index: 5;
-}
-
-.excess-indicator {
-    position: absolute;
-    top: -22px;
-    font-size: 11px;
-    font-weight: 800;
-    color: #dc2626;
-    white-space: nowrap;
-    transform: translateX(-50%);
-    background: #fee2e2;
-    padding: 2px 6px;
-    border-radius: 4px;
-    border: 1px solid #fecaca;
-    z-index: 10;
-}
-
-.excess-indicator::after {
-    content: '';
-    position: absolute;
-    top: 100%;
-    left: 50%;
-    transform: translateX(-50%);
-    border-width: 4px;
-    border-style: solid;
-    border-color: #fecaca transparent transparent transparent;
-}
-
-.manpower-percentage {
-    font-size: 20px;
-    font-weight: 900;
-    color: #333333;
-    text-align: center;
-    margin-top: 12px;
-}
-
-.gauge-labels {
-    display: flex;
-    justify-content: space-between;
-    margin-top: 4px;
-    font-size: 13px;
-    font-weight: 700;
-    text-transform: uppercase;
-}
-
-.staff-main-count {
-    font-size: 42px;
-    font-weight: 800;
-    color: #333333;
-    margin: 10px 0;
-}
-
-.staff-meta-text {
-    color: #64748b;
-    font-size: 14px;
-    margin-bottom: 20px;
-}
-
-/* Independent Designation Chips */
-.designation-chips {
-    display: flex;
-    gap: 10px;
-    margin-top: auto;
-    padding-top: 20px;
-}
-
-.chip {
-    flex: 1;
-    background: #f8fafc;
-    padding: 10px;
-    border-radius: 10px;
-    text-align: center;
-    border: 1px solid #e2e8f0;
-}
-
-.chip-label {
-    display: block;
-    font-size: 11px;
-    color: #64748b;
-    text-transform: uppercase;
-    font-weight: 700;
-}
-
-.chip-value {
-    font-size: 18px;
-    font-weight: 700;
-    color: #333333;
-}
-			@media (max-width: 992px) {
-				.details-row {
-					flex-direction: column;
-					gap: 30px;
-				}
-				.details-row > section {
-					min-width: 100%;
-				}
+			.branch-search {
+				max-width: 100%;
 			}
 
-			@media (max-width: 768px) {
-				.bm-card {
-					grid-template-columns: 1fr;
-					text-align: center;
-				}
+			.back-button {
+				position: absolute;
+				top: 12px;
+				right: 16px;
+			}
+		}
 
-				.bm-avatar {
-					margin: 0 auto;
-				}
+		@media (max-width: 480px) {
+			.branch-name {
+				font-size: 16px;
 			}
 
-			@keyframes spin {
-				to {
-					transform: translateY(-50%) rotate(360deg);
-				}
+			.search-input {
+				padding: 8px 12px;
+				font-size: 13px;
 			}
 
-			/* RESPONSIVE */
-			@media (max-width: 768px) {
-				body {
-					padding-top: 120px;
-				}
-
-				.header {
-					min-height: 120px;
-				}
-
-				.header-content {
-					grid-template-columns: 1fr;
-					gap: 12px;
-					padding: 12px 16px;
-				}
-
-				.branch-info {
-					max-width: 100%;
-					text-align: center;
-				}
-
-				.branch-search {
-					max-width: 100%;
-				}
-
-				.back-button {
-					position: absolute;
-					top: 12px;
-					right: 16px;
-				}
+			.search-button {
+				padding: 0 12px;
+				min-width: 50px;
 			}
+		}
+	</style>
+</head>
 
-			@media (max-width: 480px) {
-				.branch-name {
-					font-size: 16px;
-				}
+<body>
+	<header class="header" role="banner">
+		<div class="header-content">
+			<div class="branch-info">
+				<h1 class="branch-name" id="branch-name" aria-live="polite">Loading...</h1>
+				<div class="branch-meta" aria-live="polite">
+					<span id="branch-zone">--</span> • <span id="branch-region">--</span> •
+					<span id="branch-state">--</span>
+				</div>
+			</div>
 
-				.search-input {
-					padding: 8px 12px;
-					font-size: 13px;
-				}
+			<div class="branch-search">
+				<form id="branch-search-form" class="search-container" role="search">
+					<input type="search" id="branch-search-input" class="search-input"
+						placeholder="Search by SOL ID or Branch Name..." aria-label="Search branches" autocomplete="off"
+						spellcheck="false" />
+					<button type="submit" class="search-button" aria-label="Search">
+						<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+							stroke-width="2">
+							<circle cx="11" cy="11" r="8"></circle>
+							<path d="M21 21l-4.35-4.35"></path>
+						</svg>
+					</button>
+				</form>
 
-				.search-button {
-					padding: 0 12px;
-					min-width: 50px;
-				}
-			}
-		</style>
-	</head>
-	<body>
-		<header class="header" role="banner">
-			<div class="header-content">
-				<div class="branch-info">
-					<h1 class="branch-name" id="branch-name" aria-live="polite">Loading...</h1>
-					<div class="branch-meta" aria-live="polite">
-						<span id="branch-zone">--</span> • <span id="branch-region">--</span> •
-						<span id="branch-state">--</span>
-					</div>
+				<div class="search-suggestions" id="search-suggestions" role="listbox" aria-label="Search suggestions">
+					<div class="suggestions-container" id="suggestions-container"></div>
+				</div>
+			</div>
+
+			<div style="display: flex; align-items: center;">
+				<div class="format-toggle" id="format-toggle">
+					<button class="format-btn active" data-mode="words">Words</button>
+					<button class="format-btn" data-mode="number">Numbers</button>
 				</div>
 
-				<div class="branch-search">
-					<form id="branch-search-form" class="search-container" role="search">
-						<input
-							type="search"
-							id="branch-search-input"
-							class="search-input"
-							placeholder="Search by SOL ID or Branch Name..."
-							aria-label="Search branches"
-							autocomplete="off"
-							spellcheck="false"
-						/>
-						<button type="submit" class="search-button" aria-label="Search">
-							<svg
-								width="18"
-								height="18"
-								viewBox="0 0 24 24"
-								fill="none"
-								stroke="currentColor"
-								stroke-width="2"
-							>
-								<circle cx="11" cy="11" r="8"></circle>
-								<path d="M21 21l-4.35-4.35"></path>
-							</svg>
-						</button>
-					</form>
-
-					<div
-						class="search-suggestions"
-						id="search-suggestions"
-						role="listbox"
-						aria-label="Search suggestions"
-					>
-						<div class="suggestions-container" id="suggestions-container"></div>
-					</div>
-				</div>
-
-				<div style="display: flex; align-items: center;">
-					<div class="format-toggle" id="format-toggle">
-						<button class="format-btn active" data-mode="words">Words</button>
-						<button class="format-btn" data-mode="number">Numbers</button>
-					</div>
-
-					<a
-						href="#"
-						class="back-button"
-					onclick="
+				<a href="#" class="back-button" onclick="
 						window.history.back();
 						return false;
-					"
-					aria-label="Go back"
-				>
-					<svg
-						width="16"
-						height="16"
-						viewBox="0 0 24"
-						fill="none"
-						stroke="currentColor"
-						stroke-width="2"
-					>
+					" aria-label="Go back">
+					<svg width="16" height="16" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2">
 						<path d="M19 12H5M12 19l-7-7 7-7"></path>
 					</svg>
 					Back
 				</a>
 			</div>
-		</header>
-				<main class="page-content">
-					<div id="no-branch-selected-message" style="display: none; text-align: center; margin-top: 50px; font-size: 1.2em; color: #666; padding: 20px; border-radius: 8px; background: #fff; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);">
-						<p>Please select a branch to view its complete details.</p>
-						<p style="font-size: 0.9em; color: #999; margin-top: 10px;">You can use the search bar above to find a branch.</p>
+	</header>
+	<main class="page-content">
+		<div id="no-branch-selected-message"
+			style="display: none; text-align: center; margin-top: 50px; font-size: 1.2em; color: #666; padding: 20px; border-radius: 8px; background: #fff; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);">
+			<p>Please select a branch to view its complete details.</p>
+			<p style="font-size: 0.9em; color: #999; margin-top: 10px;">You can use the search bar above to find a
+				branch.</p>
+		</div>
+		<div id="branch-data-container">
+			<section class="bm-card" id="bm-profile">
+				<div class="bm-left">
+					<div class="bm-avatar">
+						<img id="bm-photo" alt="Branch Manager" />
 					</div>
-					<div id="branch-data-container">
-						<section class="bm-card" id="bm-profile">
-							<div class="bm-left">
-								<div class="bm-avatar">
-									<img id="bm-photo" alt="Branch Manager" />
-								</div>
-							</div>
-		
-							<div class="bm-right">
-								<div class="bm-title">Branch Manager</div>
-		
-								<div class="bm-name" id="bm-name">Loading...</div>
-								<div class="bm-sub">
-									<span id="branch-name">--</span> •
-									<span id="branch-district">--</span>
-							</div>
+				</div>
 
-<div class="bm-info-grid">
-    <div>
-        <label>BM Date of Joining</label>
-        <span id="bm-doj">--</span>
-    </div>
-    <div>
-        <label>Branch Opening Date</label>
-        <span id="branch-opening-date">--</span>
-    </div>
-    <div>
-        <label>Reporting Person</label>
-        <span id="ch-name">--</span>
-    </div>
+				<div class="bm-right">
+					<div class="bm-title">Branch Manager</div>
 
-    <div>
-        <label>BM Vintage</label>
-        <span id="bm-vintage">--</span>
-    </div>
-    <div>
-        <label>Branch Vintage</label>
-        <span id="branch-vintage">--</span>
-    </div>
-    <div>
-        <label>Reporting Person Mobile</label>
-        <span id="ch-mobile">--</span>
-    </div>
+					<div class="bm-name" id="bm-name">Loading...</div>
+					<div class="bm-sub">
+						<span id="branch-name">--</span> •
+						<span id="branch-district">--</span>
+					</div>
 
-    <div>
-        <label>BM Mobile</label>
-        <span id="bm-mobile">--</span>
-    </div>
-    <div>
-        <label>Branch Email</label>
-        <span id="branch-email">--</span>
-    </div>
-</div>
-
-						</section>
-		
-						<div class="details-row">
-							<section class="total-staff-overview-card">
-    <div class="staff-detail-content">
-                <div class="staff-header-flex">
-                    <h2 style="margin:0">Manpower Status</h2>
-                    <div id="staff-status-badge" class="status-badge">Checking...</div>
-                </div>
-        
-                <div class="designation-chips" style="margin-bottom: 25px; margin-top: 0;">
-                    <div class="chip">
-                        <div style="display: flex; align-items: center; justify-content: center; gap: 4px; margin-bottom: 4px;">
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
-                            <span class="chip-label" style="margin:0">BDE</span>
-                        </div>
-                        <span class="chip-value" id="bde-chip-val">--</span>
-                    </div>
-                    <div class="chip">
-                        <div style="display: flex; align-items: center; justify-content: center; gap: 4px; margin-bottom: 4px;">
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>
-                            <span class="chip-label" style="margin:0">BDO</span>
-                        </div>
-                        <span class="chip-value" id="bdo-chip-val">--</span>
-                    </div>
-                    <div class="chip">
-                        <div style="display: flex; align-items: center; justify-content: center; gap: 4px; margin-bottom: 4px;">
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
-                            <span class="chip-label" style="margin:0">RO</span>
-                        </div>
-                        <span class="chip-value" id="ro-chip-val">--</span>
-                    </div>
-                </div>
-        
-        <div style="position:relative">
-            <div id="excess-tag" class="excess-indicator" style="display:none"></div>
-            <div class="gauge-wrapper">
-                 <div id="bar-blue" class="bar-blue" style="width: 0%"></div>
-                 <div id="bar-red" class="bar-red" style="width: 0%"></div>
-                 <div id="budget-marker" class="budget-line" style="display:none"></div>
-            </div>
-            <div class="gauge-labels">
-                 <div style="color: #097c80;">Budgeted Staff: <span id="budget-label-val">--</span></div>
-                 <div style="color: #333333;">Total Active Staff: <span id="actual-label-val">--</span></div>
-            </div>
-            <div id="manpower-percentage" class="manpower-percentage">--%</div>
-        </div>    </div>
-    <button class="view-details-button" onclick="document.getElementById('manpower-details-section').scrollIntoView({ behavior: 'smooth' })">View Detailed Manpower Table</button>
-</section>
-		
-							<section class="staff-detail-section">
-								<h2>Agent Details</h2>
-								<div class="agent-cards-grid">
-									<!-- DDS Agent Card -->
-									<div class="spinner-card">
-										<div class="spinner-left-stack">
-											<div class="spinner-label">DDS Agents</div>
-											<div class="spinner-data" style="margin-top: 0;">
-												<span id="dds-active" class="count-active">--</span>
-												<span class="count-total"> / <span id="dds-total">--</span></span>
-												<span class="count-inactive">Inactive: <span id="dds-inactive-count">--</span> (<span id="dds-inactive-perc">--%</span>)</span>
-											</div>
-										</div>
-										<div class="spinner-container">
-											<svg class="spinner-svg" viewBox="0 0 36 36">
-												<circle class="spinner-circle spinner-background" cx="18" cy="18" r="15.9155"></circle>
-												<circle id="dds-spinner-progress" class="spinner-circle spinner-progress" cx="18" cy="18" r="15.9155" stroke-dasharray="0, 100"></circle>
-											</svg>
-											<div id="dds-spinner-percentage" class="spinner-percentage">
-												<span class="perc-label">Active</span>
-												<span class="perc-val">0%</span>
-											</div>
-										</div>
-									</div>
-		
-									<!-- SS Agent Card -->
-									<div class="spinner-card">
-										<div class="spinner-left-stack">
-											<div class="spinner-label">SS Agents</div>
-											<div class="spinner-data" style="margin-top: 0;">
-												<span id="ss-active" class="count-active">--</span>
-												<span class="count-total"> / <span id="ss-total">--</span></span>
-												<span class="count-inactive">Inactive: <span id="ss-inactive-count">--</span> (<span id="ss-inactive-perc">--%</span>)</span>
-											</div>
-										</div>
-										<div class="spinner-container">
-											<svg class="spinner-svg" viewBox="0 0 36 36">
-												<circle class="spinner-circle spinner-background" cx="18" cy="18" r="15.9155"></circle>
-												<circle id="ss-spinner-progress" class="spinner-circle spinner-progress" cx="18" cy="18" r="15.9155" stroke-dasharray="0, 100"></circle>
-											</svg>
-											<div id="ss-spinner-percentage" class="spinner-percentage">
-												<span class="perc-label">Active</span>
-												<span class="perc-val">0%</span>
-											</div>
-										</div>
-									</div>
-								</div>
-							</section>
-
-							<section class="staff-detail-section" id="category-card">
-								<div class="staff-header-flex" style="flex-direction: column; align-items: flex-start; gap: 8px; margin-bottom: 20px;">
-									<div style="display: flex; justify-content: space-between; width: 100%; align-items: center;">
-										<h2 style="margin:0">Category</h2>
-										<div class="category-tabs" id="category-tabs">
-											<div class="category-tab active" data-period="monthly">Monthly</div>
-											<div class="category-tab" data-period="ytd">YTD</div>
-											<div class="category-tab" data-period="yearly">Yearly</div>
-										</div>
-									</div>
-									<div class="fy-filter-wrapper">
-										<span class="fy-label">Financial Year:</span>
-										<select class="fy-select-compact" id="fy-select">
-											<option value="2025-2026">2025-2026</option>
-										</select>
-									</div>
-								</div>
-
-								<div style="margin-top: 8px;">
-									<div style="font-size: 13px; color: #64748b; font-weight: 600;">Current Performance Level</div>
-									<div id="performance-status" style="font-size: 20px; font-weight: 800; color: var(--primary-1); margin: 4px 0;">Accelerator</div>
-
-									<div class="category-hierarchy" id="category-hierarchy">
-										<div class="hierarchy-badge">
-											<span>Pinnacle</span>
-											<span class="criteria">>100%</span>
-										</div>
-										<div class="hierarchy-badge">
-											<span>Master</span>
-											<span class="criteria">80-100%</span>
-										</div>
-										<div class="hierarchy-badge active">
-											<span>Accelerator</span>
-											<span class="criteria">60-80%</span>
-										</div>
-										<div class="hierarchy-badge">
-											<span>Starter</span>
-											<span class="criteria">40-60%</span>
-										</div>
-										<div class="hierarchy-badge">
-											<span>Learner</span>
-											<span class="criteria">20-40%</span>
-										</div>
-										<div class="hierarchy-badge">
-											<span>Zero</span>
-											<span class="criteria">0-20%</span>
-										</div>
-									</div>
-								</div>
-
-								<div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-top: 10px; padding-top: 15px; border-top: 1px solid #f1f5f9;">
-									<div>
-										<div style="font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase;">Target</div>
-										<div id="cat-target-val" style="font-size: 15px; font-weight: 700; color: #333333;">₹ 50,00,000</div>
-									</div>
-									<div>
-										<div style="font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase;">Achievement</div>
-										<div id="cat-achievement-val" style="font-size: 15px; font-weight: 700; color: #10b981;">₹ 42,50,000</div>
-									</div>
-									<div>
-										<div style="font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase;">% Ach.</div>
-										<div id="cat-percentage-val" style="font-size: 15px; font-weight: 700; color: var(--primary-1);">85.00%</div>
-									</div>
-								</div>
-							</section>
+					<div class="bm-info-grid">
+						<div>
+							<label>BM Date of Joining</label>
+							<span id="bm-doj">--</span>
 						</div>
-		
-						<section class="staff-detail-section">
-							<h2>Deposit & Book Position</h2>
-							<div class="financial-table-container">
-								<table class="financial-table">
-									<thead>
-										<tr>
-											<th>Account Type</th>
-											<th class="amount-col">Book Position</th>
-											<th class="bar-col">Composition</th>
-										</tr>
-									</thead>
-									<tbody>
-										<tr class="total-row">
-											<td class="label-col">
-												<strong>Total Book</strong>
-											</td>
-											<td class="amount-col">
-												<div class="data-wrapper">
-													<span id="total-book">--</span>
-												</div>
-											</td>
-											<td class="bar-col"></td>
-										</tr>
-										<tr class="sub-item">
-											<td class="label-col">
-												<span class="acc-dot sa"></span>
-												<span>Savings Account (SA)</span>
-											</td>
-											<td class="amount-col">
-												<span id="sa-book">--</span>
-											</td>
-											<td class="bar-col">
-												<div class="bar-wrapper">
-													<div class="comp-bar-bg"><div class="comp-bar-fill" id="sa-book-bar"></div></div>
-													<span class="perc-share" id="sa-book-perc">--</span>
-												</div>
-											</td>
-										</tr>
-										<tr class="sub-item">
-											<td class="label-col">
-												<span class="acc-dot ca"></span>
-												<span>Current Account (CA)</span>
-											</td>
-											<td class="amount-col">
-												<span id="ca-book">--</span>
-											</td>
-											<td class="bar-col">
-												<div class="bar-wrapper">
-													<div class="comp-bar-bg"><div class="comp-bar-fill" id="ca-book-bar"></div></div>
-													<span class="perc-share" id="ca-book-perc">--</span>
-												</div>
-											</td>
-										</tr>
-										<tr class="sub-item">
-											<td class="label-col">
-												<span class="acc-dot fd"></span>
-												<span>Fixed Deposit (FD)</span>
-											</td>
-											<td class="amount-col">
-												<span id="fd-book">--</span>
-											</td>
-											<td class="bar-col">
-												<div class="bar-wrapper">
-													<div class="comp-bar-bg"><div class="comp-bar-fill" id="fd-book-bar"></div></div>
-													<span class="perc-share" id="fd-book-perc">--</span>
-												</div>
-											</td>
-										</tr>
-										<tr class="sub-item">
-											<td class="label-col">
-												<span class="acc-dot rd"></span>
-												<span>Recurring Deposit (RD)</span>
-											</td>
-											<td class="amount-col">
-												<span id="rd-book">--</span>
-											</td>
-											<td class="bar-col">
-												<div class="bar-wrapper">
-													<div class="comp-bar-bg"><div class="comp-bar-fill" id="rd-book-bar"></div></div>
-													<span class="perc-share" id="rd-book-perc">--</span>
-												</div>
-											</td>
-										</tr>
-										<tr class="sub-item">
-											<td class="label-col">
-												<span class="acc-dot dds"></span>
-												<span>DDS Book</span>
-											</td>
-											<td class="amount-col">
-												<span id="dds-book">--</span>
-											</td>
-											<td class="bar-col">
-												<div class="bar-wrapper">
-													<div class="comp-bar-bg"><div class="comp-bar-fill" id="dds-book-bar"></div></div>
-													<span class="perc-share" id="dds-book-perc">--</span>
-												</div>
-											</td>
-										</tr>
-										<tr class="sub-item">
-											<td class="label-col">
-												<span class="acc-dot smbg"></span>
-												<span>SMBG Book</span>
-											</td>
-											<td class="amount-col">
-												<span id="smbg-book">--</span>
-											</td>
-											<td class="bar-col">
-												<div class="bar-wrapper">
-													<div class="comp-bar-bg"><div class="comp-bar-fill" id="smbg-book-bar"></div></div>
-													<span class="perc-share" id="smbg-book-perc">--</span>
-												</div>
-											</td>
-										</tr>
-									</tbody>
-								</table>
-							</div>
-						</section>
-		
-						<section class="staff-detail-section">
-							<h2>Customers Details</h2>
-							<div class="financial-table-container">
-								<table class="financial-table">
-									<thead>
-										<tr>
-											<th>Category</th>
-											<th class="amount-col">Customer Count</th>
-											<th class="bar-col">Composition</th>
-										</tr>
-									</thead>
-									<tbody>
-										<tr class="total-row">
-											<td class="label-col">
-												<strong>Total Customers</strong>
-											</td>
-											<td class="amount-col">
-												<div class="data-wrapper">
-													<span id="total-customers-id">--</span>
-												</div>
-											</td>
-											<td class="bar-col"></td>
-										</tr>
-										<tr class="sub-item">
-											<td class="label-col">
-												<span class="acc-dot sa"></span>
-												<span>SA Customers</span>
-											</td>
-											<td class="amount-col">
-												<span id="total-sa-no-of-customers">--</span>
-											</td>
-											<td class="bar-col">
-												<div class="bar-wrapper">
-													<div class="comp-bar-bg"><div class="comp-bar-fill" id="sa-cust-bar"></div></div>
-													<span class="perc-share" id="sa-cust-perc">--</span>
-												</div>
-											</td>
-										</tr>
-										<tr class="sub-item">
-											<td class="label-col">
-												<span class="acc-dot ca"></span>
-												<span>CA Customers</span>
-											</td>
-											<td class="amount-col">
-												<span id="total-ca-no-of-customers">--</span>
-											</td>
-											<td class="bar-col">
-												<div class="bar-wrapper">
-													<div class="comp-bar-bg"><div class="comp-bar-fill" id="ca-cust-bar"></div></div>
-													<span class="perc-share" id="ca-cust-perc">--</span>
-												</div>
-											</td>
-										</tr>
-										<tr class="sub-item">
-											<td class="label-col">
-												<span class="acc-dot fd"></span>
-												<span>FD Customers</span>
-											</td>
-											<td class="amount-col">
-												<span id="total-fd-no-of-customers">--</span>
-											</td>
-											<td class="bar-col">
-												<div class="bar-wrapper">
-													<div class="comp-bar-bg"><div class="comp-bar-fill" id="fd-cust-bar"></div></div>
-													<span class="perc-share" id="fd-cust-perc">--</span>
-												</div>
-											</td>
-										</tr>
-										<tr class="sub-item">
-											<td class="label-col">
-												<span class="acc-dot rd"></span>
-												<span>RD Customers</span>
-											</td>
-											<td class="amount-col">
-												<span id="total-rd-no-of_customers">--</span>
-											</td>
-											<td class="bar-col">
-												<div class="bar-wrapper">
-													<div class="comp-bar-bg"><div class="comp-bar-fill" id="rd-cust-bar"></div></div>
-													<span class="perc-share" id="rd-cust-perc">--</span>
-												</div>
-											</td>
-										</tr>
-										<tr class="sub-item">
-											<td class="label-col">
-												<span class="acc-dot dds"></span>
-												<span>DDS Customers</span>
-											</td>
-											<td class="amount-col">
-												<span id="total-dds-no-of-customers">--</span>
-											</td>
-											<td class="bar-col">
-												<div class="bar-wrapper">
-													<div class="comp-bar-bg"><div class="comp-bar-fill" id="dds-cust-bar"></div></div>
-													<span class="perc-share" id="dds-cust-perc">--</span>
-												</div>
-											</td>
-										</tr>
-										<tr class="sub-item">
-											<td class="label-col">
-												<span class="acc-dot smbg"></span>
-												<span>SMBG Customers</span>
-											</td>
-											<td class="amount-col">
-												<span id="total-smbg-no-of-customers">--</span>
-											</td>
-											<td class="bar-col">
-												<div class="bar-wrapper">
-													<div class="comp-bar-bg"><div class="comp-bar-fill" id="smbg-cust-bar"></div></div>
-													<span class="perc-share" id="smbg-cust-perc">--</span>
-												</div>
-											</td>
-										</tr>
-									</tbody>
-								</table>
-							</div>
-						</section>
-		
-						<section class="staff-detail-section">
-							<h2>Demand & Collection Performance</h2>
-							<div class="financial-table-container">
-								                                								<table class="financial-table">
-								                                									<thead>
-								                                										<tr>
-								                                											<th>Metric</th>
-								                                											<th class="amount-col">Performance</th>
-								                                										</tr>
-								                                									</thead>
-								                                									<tbody>
-								                                										<tr>
-								                                											<td class="label-col">
-								                                												<span class="acc-dot dds"></span>
-								                                												<span>DDS Demand</span>
-								                                											</td>
-								                                											<td class="amount-col">
-								                                												<span id="dds-demand">--</span>
-								                                											</td>
-								                                										</tr>
-								                                										<tr>
-								                                											<td class="label-col">
-								                                												<span class="acc-dot dds"></span>
-								                                												<span>DDS Collection</span>
-								                                											</td>
-								                                											<td class="amount-col">
-								                                												<span id="dd-collection">--</span>
-								                                											</td>
-								                                										</tr>
-								                                										<tr class="total-row">
-								                                											<td class="label-col">
-								                                												<span>DDS Demand vs Collection</span>
-								                                											</td>
-								                                											<td class="amount-col">
-								                                												<div class="data-wrapper">
-								                                													<span id="dds-demand-vs-collection">--</span>
-								                                												</div>
-								                                											</td>
-								                                										</tr>
-								                                										<tr>
-								                                											<td class="label-col">
-								                                												<span class="acc-dot smbg"></span>
-								                                												<span>SMBG Demand</span>
-								                                											</td>
-								                                											<td class="amount-col">
-								                                												<span id="smbg-demand">--</span>
-								                                											</td>
-								                                										</tr>
-								                                										<tr>
-								                                											<td class="label-col">
-								                                												<span class="acc-dot smbg"></span>
-								                                												<span>SMBG Collection</span>
-								                                											</td>
-								                                											<td class="amount-col">
-								                                												<span id="smbg-collection">--</span>
-								                                											</td>
-								                                										</tr>
-								                                										<tr class="total-row">
-								                                											<td class="label-col">
-								                                												<span>SMBG Demand vs Collection</span>
-								                                											</td>
-								                                											<td class="amount-col">
-								                                												<div class="data-wrapper">
-								                                													<span id="smbg-demand-vs-collection">--</span>
-								                                												</div>
-								                                											</td>
-								                                										</tr>
-								                                										<tr>
-								                                											<td class="label-col">
-								                                												<span class="acc-dot rd"></span>
-								                                												<span>RD Demand</span>
-								                                											</td>
-								                                											<td class="amount-col">
-								                                												<span id="rd-demand">--</span>
-								                                											</td>
-								                                										</tr>
-								                                										<tr>
-								                                											<td class="label-col">
-								                                												<span class="acc-dot rd"></span>
-								                                												<span>RD Collection</span>
-								                                											</td>
-								                                											<td class="amount-col">
-								                                												<span id="rd-collection">--</span>
-								                                											</td>
-								                                										</tr>
-								                                										<tr class="total-row">
-								                                											<td class="label-col">
-								                                												<span class="acc-dot rd"></span>
-								                                												<span>RD SMBG Collection</span>
-								                                											</td>
-								                                											<td class="amount-col">
-								                                												<div class="data-wrapper">
-								                                													<span id="rd-smbg-collection">--</span>
-								                                												</div>
-								                                											</td>
-								                                										</tr>
-								                                										<tr class="total-row pending-animation">
-								                                											<td class="label-col">
-								                                												<span class="acc-dot rd"></span>
-								                                												<span>RD SMBG Pending</span>
-								                                											</td>
-								                                											<td class="amount-col">
-								                                												<div class="data-wrapper">
-								                                													<span id="rd-smbg-pending">--</span>
-								                                												</div>
-								                                											</td>
-								                                										</tr>
-								                                									</tbody>
-								                                								</table>							</div>
-						</section>
+						<div>
+							<label>Branch Opening Date</label>
+							<span id="branch-opening-date">--</span>
+						</div>
+						<div>
+							<label>Reporting Person</label>
+							<span id="ch-name">--</span>
+						</div>
 
-						<section class="staff-detail-section">
-							<h2>Productivity Details</h2>
-							<div class="financial-table-container">
-								<table class="financial-table">
-									<thead>
-										<tr>
-											<th>Metric</th>
-											<th class="amount-col">Value</th>
-										</tr>
-									</thead>
-									<tbody>
-										<tr>
-											<td class="label-col">
-												<span>Total Productivity</span>
-											</td>
-											<td class="amount-col">
-												<span id="total-productivity">--</span>
-											</td>
-										</tr>
-										<tr>
-											<td class="label-col">
-												<span>BDO & Productivity</span>
-											</td>
-											<td class="amount-col">
-												<span id="bdo-and-productivity">--</span>
-											</td>
-										</tr>
-										<tr>
-											<td class="label-col">
-												<span>BDE & Productivity</span>
-											</td>
-											<td class="amount-col">
-												<span id="bde-and-productivity">--</span>
-											</td>
-										</tr>
-										<tr>
-											<td class="label-col">
-												<span>BDO Productivity</span>
-											</td>
-											<td class="amount-col">
-												<span id="bdo-productivity">--</span>
-											</td>
-										</tr>
-										<tr>
-											<td class="label-col">
-												<span>NMAB AC</span>
-											</td>
-											<td class="amount-col">
-												<span id="nmab-ac">--</span>
-											</td>
-										</tr>
-										<tr>
-											<td class="label-col">
-												<span>MAB AC</span>
-											</td>
-											<td class="amount-col">
-												<span id="mab-ac">--</span>
-											</td>
-										</tr>
-									</tbody>
-								</table>
-							</div>
-						</section>
+						<div>
+							<label>BM Vintage</label>
+							<span id="bm-vintage">--</span>
+						</div>
+						<div>
+							<label>Branch Vintage</label>
+							<span id="branch-vintage">--</span>
+						</div>
+						<div>
+							<label>Reporting Person Mobile</label>
+							<span id="ch-mobile">--</span>
+						</div>
 
-						<section class="staff-detail-section" id="manpower-details-section">
-							<div class="manpower-header-sticky" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; gap: 15px; flex-wrap: wrap;">
-								<h2 style="margin: 0; white-space: nowrap;">Manpower Details</h2>
-								
-								<div style="flex: 1; min-width: 250px; max-width: 400px; position: relative;">
-									<input 
-										type="text" 
-										id="manpower-search-input" 
-										placeholder="Search by Name or ID..." 
-										style="width: 100%; padding: 8px 12px 8px 35px; border-radius: 8px; border: 1px solid #e2e8f0; font-size: 13px; outline: none; transition: border-color 0.2s;"
-										onfocus="this.style.borderColor='var(--primary-1)'"
-										onblur="this.style.borderColor='#e2e8f0'"
-									>
-									<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%);">
-										<circle cx="11" cy="11" r="8"></circle>
-										<path d="M21 21l-4.35-4.35"></path>
-									</svg>
-								</div>
-
-								<div class="category-tabs" id="manpower-pip-filter" style="margin-left: auto;">
-									<div class="category-tab active" data-filter="all">All</div>
-									<div class="category-tab" data-filter="pip">PIP</div>
-									<div class="category-tab" data-filter="non-pip">Non-PIP</div>
-								</div>
-							</div>
-							<div class="financial-table-container">
-								<table class="financial-table">
-									<thead>
-										<tr>
-											<th id="sort-emp-id" style="cursor: pointer; white-space: nowrap;">
-												Employee ID 
-												<span id="emp-id-sort-icon" class="fa fa-sort" style="margin-left: 5px; color: var(--primary-1);"></span>
-											</th>
-											<th>Employee Name</th>
-											<th>Mobile</th>
-											<th>Joining Date</th>
-											<th>Experience</th>
-											<th style="text-align: right;">Total Leads</th>
-											<th style="text-align: right;">Total Converted</th>
-											<th style="text-align: right;">Conversion Ratio</th>
-											<th style="text-align: center;">PIP Status</th>
-										</tr>
-									</thead>
-									<tbody id="manpower-details-tbody">
-										<tr>
-											<td colspan="9" style="text-align: center; color: #64748b; padding: 20px;">
-												No manpower data available.
-											</td>
-										</tr>
-									</tbody>
-								</table>
-							</div>
-						</section>
+						<div>
+							<label>BM Mobile</label>
+							<span id="bm-mobile">--</span>
+						</div>
+						<div>
+							<label>Branch Email</label>
+							<span id="branch-email">--</span>
+						</div>
 					</div>
+
+			</section>
+
+			<div class="details-row">
+				<section class="total-staff-overview-card">
+					<div class="staff-detail-content">
+						<div class="staff-header-flex">
+							<h2 style="margin:0">Manpower Status</h2>
+							<div id="staff-status-badge" class="status-badge">Checking...</div>
+						</div>
+
+						<div class="designation-chips" style="margin-bottom: 25px; margin-top: 0;">
+							<div class="chip">
+								<div
+									style="display: flex; align-items: center; justify-content: center; gap: 4px; margin-bottom: 4px;">
+									<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+										stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+										<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+										<circle cx="12" cy="7" r="4"></circle>
+									</svg>
+									<span class="chip-label" style="margin:0">BDE</span>
+								</div>
+								<span class="chip-value" id="bde-chip-val">--</span>
+							</div>
+							<div class="chip">
+								<div
+									style="display: flex; align-items: center; justify-content: center; gap: 4px; margin-bottom: 4px;">
+									<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+										stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+										<rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+										<path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+									</svg>
+									<span class="chip-label" style="margin:0">BDO</span>
+								</div>
+								<span class="chip-value" id="bdo-chip-val">--</span>
+							</div>
+							<div class="chip">
+								<div
+									style="display: flex; align-items: center; justify-content: center; gap: 4px; margin-bottom: 4px;">
+									<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+										stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+										<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+									</svg>
+									<span class="chip-label" style="margin:0">RO</span>
+								</div>
+								<span class="chip-value" id="ro-chip-val">--</span>
+							</div>
+						</div>
+
+						<div style="position:relative">
+							<div id="excess-tag" class="excess-indicator" style="display:none"></div>
+							<div class="gauge-wrapper">
+								<div id="bar-blue" class="bar-blue" style="width: 0%"></div>
+								<div id="bar-red" class="bar-red" style="width: 0%"></div>
+								<div id="budget-marker" class="budget-line" style="display:none"></div>
+							</div>
+							<div class="gauge-labels">
+								<div style="color: #097c80;">Budgeted Staff: <span id="budget-label-val">--</span></div>
+								<div style="color: #333333;">Total Active Staff: <span id="actual-label-val">--</span>
+								</div>
+							</div>
+							<div id="manpower-percentage" class="manpower-percentage">--%</div>
+						</div>
+					</div>
+					<button class="view-details-button"
+						onclick="document.getElementById('manpower-details-section').scrollIntoView({ behavior: 'smooth' })">View
+						Detailed Manpower Table</button>
+				</section>
+
+				<section class="staff-detail-section">
+					<h2>Agent Details</h2>
+					<div class="agent-cards-grid">
+						<!-- DDS Agent Card -->
+						<div class="spinner-card">
+							<div class="spinner-left-stack">
+								<div class="spinner-label">DDS Agents</div>
+								<div class="spinner-data" style="margin-top: 0;">
+									<span id="dds-active" class="count-active">--</span>
+									<span class="count-total"> / <span id="dds-total">--</span></span>
+									<span class="count-inactive">Inactive: <span id="dds-inactive-count">--</span>
+										(<span id="dds-inactive-perc">--%</span>)</span>
+								</div>
+							</div>
+							<div class="spinner-container">
+								<svg class="spinner-svg" viewBox="0 0 36 36">
+									<circle class="spinner-circle spinner-background" cx="18" cy="18" r="15.9155">
+									</circle>
+									<circle id="dds-spinner-progress" class="spinner-circle spinner-progress" cx="18"
+										cy="18" r="15.9155" stroke-dasharray="0, 100"></circle>
+								</svg>
+								<div id="dds-spinner-percentage" class="spinner-percentage">
+									<span class="perc-label">Active</span>
+									<span class="perc-val">0%</span>
+								</div>
+							</div>
+						</div>
+
+						<!-- SS Agent Card -->
+						<div class="spinner-card">
+							<div class="spinner-left-stack">
+								<div class="spinner-label">SS Agents</div>
+								<div class="spinner-data" style="margin-top: 0;">
+									<span id="ss-active" class="count-active">--</span>
+									<span class="count-total"> / <span id="ss-total">--</span></span>
+									<span class="count-inactive">Inactive: <span id="ss-inactive-count">--</span> (<span
+											id="ss-inactive-perc">--%</span>)</span>
+								</div>
+							</div>
+							<div class="spinner-container">
+								<svg class="spinner-svg" viewBox="0 0 36 36">
+									<circle class="spinner-circle spinner-background" cx="18" cy="18" r="15.9155">
+									</circle>
+									<circle id="ss-spinner-progress" class="spinner-circle spinner-progress" cx="18"
+										cy="18" r="15.9155" stroke-dasharray="0, 100"></circle>
+								</svg>
+								<div id="ss-spinner-percentage" class="spinner-percentage">
+									<span class="perc-label">Active</span>
+									<span class="perc-val">0%</span>
+								</div>
+							</div>
+						</div>
+					</div>
+				</section>
+
+				<section class="staff-detail-section" id="category-card">
+					<div class="staff-header-flex"
+						style="flex-direction: column; align-items: flex-start; gap: 8px; margin-bottom: 20px;">
+						<div style="display: flex; justify-content: space-between; width: 100%; align-items: center;">
+							<h2 style="margin:0">Category</h2>
+							<div class="category-tabs" id="category-tabs">
+								<div class="category-tab active" data-period="monthly">Monthly</div>
+								<div class="category-tab" data-period="ytd">YTD</div>
+								<div class="category-tab" data-period="yearly">Yearly</div>
+							</div>
+						</div>
+						<div class="fy-filter-wrapper">
+							<span class="fy-label">Financial Year:</span>
+							<select class="fy-select-compact" id="fy-select">
+								<option value="2025-2026">2025-2026</option>
+							</select>
+						</div>
+					</div>
+
+					<div style="margin-top: 8px;">
+						<div style="font-size: 13px; color: #64748b; font-weight: 600;">Current Performance Level</div>
+						<div id="performance-status"
+							style="font-size: 20px; font-weight: 800; color: var(--primary-1); margin: 4px 0;">
+							Accelerator</div>
+
+						<div class="category-hierarchy" id="category-hierarchy">
+							<div class="hierarchy-badge">
+								<span>Pinnacle</span>
+								<span class="criteria">>100%</span>
+							</div>
+							<div class="hierarchy-badge">
+								<span>Master</span>
+								<span class="criteria">80-100%</span>
+							</div>
+							<div class="hierarchy-badge active">
+								<span>Accelerator</span>
+								<span class="criteria">60-80%</span>
+							</div>
+							<div class="hierarchy-badge">
+								<span>Starter</span>
+								<span class="criteria">40-60%</span>
+							</div>
+							<div class="hierarchy-badge">
+								<span>Learner</span>
+								<span class="criteria">20-40%</span>
+							</div>
+							<div class="hierarchy-badge">
+								<span>Zero</span>
+								<span class="criteria">0-20%</span>
+							</div>
+						</div>
+					</div>
+
+					<div
+						style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-top: 10px; padding-top: 15px; border-top: 1px solid #f1f5f9;">
+						<div>
+							<div style="font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase;">
+								Target</div>
+							<div id="cat-target-val" style="font-size: 15px; font-weight: 700; color: #333333;">₹
+								50,00,000</div>
+						</div>
+						<div>
+							<div style="font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase;">
+								Achievement</div>
+							<div id="cat-achievement-val" style="font-size: 15px; font-weight: 700; color: #10b981;">₹
+								42,50,000</div>
+						</div>
+						<div>
+							<div style="font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase;">%
+								Ach.</div>
+							<div id="cat-percentage-val"
+								style="font-size: 15px; font-weight: 700; color: var(--primary-1);">85.00%</div>
+						</div>
+					</div>
+				</section>
+			</div>
+
+			<section class="staff-detail-section">
+				<h2>Deposit & Book Position</h2>
+				<div class="financial-table-container">
+					<table class="financial-table">
+						<thead>
+							<tr>
+								<th>Account Type</th>
+								<th class="amount-col">Book Position</th>
+								<th class="bar-col">Composition</th>
+							</tr>
+						</thead>
+						<tbody>
+							<tr class="total-row">
+								<td class="label-col">
+									<strong>Total Book</strong>
+								</td>
+								<td class="amount-col">
+									<div class="data-wrapper">
+										<span id="total-book">--</span>
+									</div>
+								</td>
+								<td class="bar-col"></td>
+							</tr>
+							<tr class="sub-item">
+								<td class="label-col">
+									<span class="acc-dot sa"></span>
+									<span>Savings Account (SA)</span>
+								</td>
+								<td class="amount-col">
+									<span id="sa-book">--</span>
+								</td>
+								<td class="bar-col">
+									<div class="bar-wrapper">
+										<div class="comp-bar-bg">
+											<div class="comp-bar-fill" id="sa-book-bar"></div>
+										</div>
+										<span class="perc-share" id="sa-book-perc">--</span>
+									</div>
+								</td>
+							</tr>
+							<tr class="sub-item">
+								<td class="label-col">
+									<span class="acc-dot ca"></span>
+									<span>Current Account (CA)</span>
+								</td>
+								<td class="amount-col">
+									<span id="ca-book">--</span>
+								</td>
+								<td class="bar-col">
+									<div class="bar-wrapper">
+										<div class="comp-bar-bg">
+											<div class="comp-bar-fill" id="ca-book-bar"></div>
+										</div>
+										<span class="perc-share" id="ca-book-perc">--</span>
+									</div>
+								</td>
+							</tr>
+							<tr class="sub-item">
+								<td class="label-col">
+									<span class="acc-dot fd"></span>
+									<span>Fixed Deposit (FD)</span>
+								</td>
+								<td class="amount-col">
+									<span id="fd-book">--</span>
+								</td>
+								<td class="bar-col">
+									<div class="bar-wrapper">
+										<div class="comp-bar-bg">
+											<div class="comp-bar-fill" id="fd-book-bar"></div>
+										</div>
+										<span class="perc-share" id="fd-book-perc">--</span>
+									</div>
+								</td>
+							</tr>
+							<tr class="sub-item">
+								<td class="label-col">
+									<span class="acc-dot rd"></span>
+									<span>Recurring Deposit (RD)</span>
+								</td>
+								<td class="amount-col">
+									<span id="rd-book">--</span>
+								</td>
+								<td class="bar-col">
+									<div class="bar-wrapper">
+										<div class="comp-bar-bg">
+											<div class="comp-bar-fill" id="rd-book-bar"></div>
+										</div>
+										<span class="perc-share" id="rd-book-perc">--</span>
+									</div>
+								</td>
+							</tr>
+							<tr class="sub-item">
+								<td class="label-col">
+									<span class="acc-dot dds"></span>
+									<span>DDS Book</span>
+								</td>
+								<td class="amount-col">
+									<span id="dds-book">--</span>
+								</td>
+								<td class="bar-col">
+									<div class="bar-wrapper">
+										<div class="comp-bar-bg">
+											<div class="comp-bar-fill" id="dds-book-bar"></div>
+										</div>
+										<span class="perc-share" id="dds-book-perc">--</span>
+									</div>
+								</td>
+							</tr>
+							<tr class="sub-item">
+								<td class="label-col">
+									<span class="acc-dot smbg"></span>
+									<span>SMBG Book</span>
+								</td>
+								<td class="amount-col">
+									<span id="smbg-book">--</span>
+								</td>
+								<td class="bar-col">
+									<div class="bar-wrapper">
+										<div class="comp-bar-bg">
+											<div class="comp-bar-fill" id="smbg-book-bar"></div>
+										</div>
+										<span class="perc-share" id="smbg-book-perc">--</span>
+									</div>
+								</td>
+							</tr>
+						</tbody>
+					</table>
+				</div>
+			</section>
+
+			<section class="staff-detail-section">
+				<h2>Customers Details</h2>
+				<div class="financial-table-container">
+					<table class="financial-table">
+						<thead>
+							<tr>
+								<th>Category</th>
+								<th class="amount-col">Customer Count</th>
+								<th class="bar-col">Composition</th>
+							</tr>
+						</thead>
+						<tbody>
+							<tr class="total-row">
+								<td class="label-col">
+									<strong>Total Customers</strong>
+								</td>
+								<td class="amount-col">
+									<div class="data-wrapper">
+										<span id="total-customers-id">--</span>
+									</div>
+								</td>
+								<td class="bar-col"></td>
+							</tr>
+							<tr class="sub-item">
+								<td class="label-col">
+									<span class="acc-dot sa"></span>
+									<span>SA Customers</span>
+								</td>
+								<td class="amount-col">
+									<span id="total-sa-no-of-customers">--</span>
+								</td>
+								<td class="bar-col">
+									<div class="bar-wrapper">
+										<div class="comp-bar-bg">
+											<div class="comp-bar-fill" id="sa-cust-bar"></div>
+										</div>
+										<span class="perc-share" id="sa-cust-perc">--</span>
+									</div>
+								</td>
+							</tr>
+							<tr class="sub-item">
+								<td class="label-col">
+									<span class="acc-dot ca"></span>
+									<span>CA Customers</span>
+								</td>
+								<td class="amount-col">
+									<span id="total-ca-no-of-customers">--</span>
+								</td>
+								<td class="bar-col">
+									<div class="bar-wrapper">
+										<div class="comp-bar-bg">
+											<div class="comp-bar-fill" id="ca-cust-bar"></div>
+										</div>
+										<span class="perc-share" id="ca-cust-perc">--</span>
+									</div>
+								</td>
+							</tr>
+							<tr class="sub-item">
+								<td class="label-col">
+									<span class="acc-dot fd"></span>
+									<span>FD Customers</span>
+								</td>
+								<td class="amount-col">
+									<span id="total-fd-no-of-customers">--</span>
+								</td>
+								<td class="bar-col">
+									<div class="bar-wrapper">
+										<div class="comp-bar-bg">
+											<div class="comp-bar-fill" id="fd-cust-bar"></div>
+										</div>
+										<span class="perc-share" id="fd-cust-perc">--</span>
+									</div>
+								</td>
+							</tr>
+							<tr class="sub-item">
+								<td class="label-col">
+									<span class="acc-dot rd"></span>
+									<span>RD Customers</span>
+								</td>
+								<td class="amount-col">
+									<span id="total-rd-no-of_customers">--</span>
+								</td>
+								<td class="bar-col">
+									<div class="bar-wrapper">
+										<div class="comp-bar-bg">
+											<div class="comp-bar-fill" id="rd-cust-bar"></div>
+										</div>
+										<span class="perc-share" id="rd-cust-perc">--</span>
+									</div>
+								</td>
+							</tr>
+							<tr class="sub-item">
+								<td class="label-col">
+									<span class="acc-dot dds"></span>
+									<span>DDS Customers</span>
+								</td>
+								<td class="amount-col">
+									<span id="total-dds-no-of-customers">--</span>
+								</td>
+								<td class="bar-col">
+									<div class="bar-wrapper">
+										<div class="comp-bar-bg">
+											<div class="comp-bar-fill" id="dds-cust-bar"></div>
+										</div>
+										<span class="perc-share" id="dds-cust-perc">--</span>
+									</div>
+								</td>
+							</tr>
+							<tr class="sub-item">
+								<td class="label-col">
+									<span class="acc-dot smbg"></span>
+									<span>SMBG Customers</span>
+								</td>
+								<td class="amount-col">
+									<span id="total-smbg-no-of-customers">--</span>
+								</td>
+								<td class="bar-col">
+									<div class="bar-wrapper">
+										<div class="comp-bar-bg">
+											<div class="comp-bar-fill" id="smbg-cust-bar"></div>
+										</div>
+										<span class="perc-share" id="smbg-cust-perc">--</span>
+									</div>
+								</td>
+							</tr>
+						</tbody>
+					</table>
+				</div>
+			</section>
+
+			<section class="staff-detail-section">
+				<h2>Demand & Collection Performance</h2>
+				<div class="financial-table-container">
+					<table class="financial-table">
+						<thead>
+							<tr>
+								<th>Metric</th>
+								<th class="amount-col">Performance</th>
+							</tr>
+						</thead>
+						<tbody>
+							<tr>
+								<td class="label-col">
+									<span class="acc-dot dds"></span>
+									<span>DDS Demand</span>
+								</td>
+								<td class="amount-col">
+									<span id="dds-demand">--</span>
+								</td>
+							</tr>
+							<tr>
+								<td class="label-col">
+									<span class="acc-dot dds"></span>
+									<span>DDS Collection</span>
+								</td>
+								<td class="amount-col">
+									<span id="dd-collection">--</span>
+								</td>
+							</tr>
+							<tr class="total-row">
+								<td class="label-col">
+									<span>DDS Demand vs Collection</span>
+								</td>
+								<td class="amount-col">
+									<div class="data-wrapper">
+										<span id="dds-demand-vs-collection">--</span>
+									</div>
+								</td>
+							</tr>
+							<tr>
+								<td class="label-col">
+									<span class="acc-dot smbg"></span>
+									<span>SMBG Demand</span>
+								</td>
+								<td class="amount-col">
+									<span id="smbg-demand">--</span>
+								</td>
+							</tr>
+							<tr>
+								<td class="label-col">
+									<span class="acc-dot smbg"></span>
+									<span>SMBG Collection</span>
+								</td>
+								<td class="amount-col">
+									<span id="smbg-collection">--</span>
+								</td>
+							</tr>
+							<tr class="total-row">
+								<td class="label-col">
+									<span>SMBG Demand vs Collection</span>
+								</td>
+								<td class="amount-col">
+									<div class="data-wrapper">
+										<span id="smbg-demand-vs-collection">--</span>
+									</div>
+								</td>
+							</tr>
+							<tr>
+								<td class="label-col">
+									<span class="acc-dot rd"></span>
+									<span>RD Demand</span>
+								</td>
+								<td class="amount-col">
+									<span id="rd-demand">--</span>
+								</td>
+							</tr>
+							<tr>
+								<td class="label-col">
+									<span class="acc-dot rd"></span>
+									<span>RD Collection</span>
+								</td>
+								<td class="amount-col">
+									<span id="rd-collection">--</span>
+								</td>
+							</tr>
+							<tr class="total-row">
+								<td class="label-col">
+									<span class="acc-dot rd"></span>
+									<span>RD SMBG Collection</span>
+								</td>
+								<td class="amount-col">
+									<div class="data-wrapper">
+										<span id="rd-smbg-collection">--</span>
+									</div>
+								</td>
+							</tr>
+							<tr class="total-row pending-animation">
+								<td class="label-col">
+									<span class="acc-dot rd"></span>
+									<span>RD SMBG Pending</span>
+								</td>
+								<td class="amount-col">
+									<div class="data-wrapper">
+										<span id="rd-smbg-pending">--</span>
+									</div>
+								</td>
+							</tr>
+						</tbody>
+					</table>
+				</div>
+			</section>
+
+			<section class="staff-detail-section">
+				<h2>Productivity Details</h2>
+				<div class="financial-table-container">
+					<table class="financial-table">
+						<thead>
+							<tr>
+								<th>Metric</th>
+								<th class="amount-col">Value</th>
+							</tr>
+						</thead>
+						<tbody>
+							<tr>
+								<td class="label-col">
+									<span>Total Productivity</span>
+								</td>
+								<td class="amount-col">
+									<span id="total-productivity">--</span>
+								</td>
+							</tr>
+							<tr>
+								<td class="label-col">
+									<span>BDO & Productivity</span>
+								</td>
+								<td class="amount-col">
+									<span id="bdo-and-productivity">--</span>
+								</td>
+							</tr>
+							<tr>
+								<td class="label-col">
+									<span>BDE & Productivity</span>
+								</td>
+								<td class="amount-col">
+									<span id="bde-and-productivity">--</span>
+								</td>
+							</tr>
+							<tr>
+								<td class="label-col">
+									<span>BDO Productivity</span>
+								</td>
+								<td class="amount-col">
+									<span id="bdo-productivity">--</span>
+								</td>
+							</tr>
+							<tr>
+								<td class="label-col">
+									<span>NMAB AC</span>
+								</td>
+								<td class="amount-col">
+									<span id="nmab-ac">--</span>
+								</td>
+							</tr>
+							<tr>
+								<td class="label-col">
+									<span>MAB AC</span>
+								</td>
+								<td class="amount-col">
+									<span id="mab-ac">--</span>
+								</td>
+							</tr>
+						</tbody>
+					</table>
+				</div>
+			</section>
+
+			<section class="staff-detail-section" id="manpower-details-section">
+				<div class="manpower-header-sticky"
+					style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; gap: 15px; flex-wrap: wrap;">
+					<h2 style="margin: 0; white-space: nowrap;">Manpower Details</h2>
+
+					<div style="flex: 1; min-width: 250px; max-width: 400px; position: relative;">
+						<input type="text" id="manpower-search-input" placeholder="Search by Name or ID..."
+							style="width: 100%; padding: 8px 12px 8px 35px; border-radius: 8px; border: 1px solid #e2e8f0; font-size: 13px; outline: none; transition: border-color 0.2s;"
+							onfocus="this.style.borderColor='var(--primary-1)'"
+							onblur="this.style.borderColor='#e2e8f0'">
+						<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2"
+							stroke-linecap="round" stroke-linejoin="round"
+							style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%);">
+							<circle cx="11" cy="11" r="8"></circle>
+							<path d="M21 21l-4.35-4.35"></path>
+						</svg>
+					</div>
+
+					<div class="category-tabs" id="manpower-pip-filter" style="margin-left: auto;">
+						<div class="category-tab active" data-filter="all">All</div>
+						<div class="category-tab" data-filter="pip">PIP</div>
+						<div class="category-tab" data-filter="non-pip">Non-PIP</div>
+					</div>
+				</div>
+				<div class="financial-table-container">
+					<table class="financial-table">
+						<thead>
+							<tr>
+								<th id="sort-emp-id" style="cursor: pointer; white-space: nowrap;">
+									Employee ID
+									<span id="emp-id-sort-icon" class="fa fa-sort"
+										style="margin-left: 5px; color: var(--primary-1);"></span>
+								</th>
+								<th>Employee Name</th>
+								<th>Mobile</th>
+								<th>Joining Date</th>
+								<th>Experience</th>
+								<th style="text-align: right;">Total Leads</th>
+								<th style="text-align: right;">Total Converted</th>
+								<th style="text-align: right;">Conversion Ratio</th>
+								<th style="text-align: center;">PIP Status</th>
+							</tr>
+						</thead>
+						<tbody id="manpower-details-tbody">
+							<tr>
+								<td colspan="9" style="text-align: center; color: #64748b; padding: 20px;">
+									No manpower data available.
+								</td>
+							</tr>
+						</tbody>
+					</table>
+				</div>
+			</section>
+		</div>
 		<script>
 			/* =========================================================
 	   BRANCH DASHBOARD (HEADER + SEARCH)
@@ -2128,7 +2263,7 @@
 						this.el.branchZone.textContent =
 							this.el.branchRegion.textContent =
 							this.el.branchState.textContent =
-								"--";
+							"--";
 						this.toggleBranchDataVisibility(false); // Hide data and show message on error
 					}
 				},
@@ -2306,7 +2441,7 @@
 							if (!btn) return;
 
 							this.state.formatMode = btn.dataset.mode;
-							
+
 							// Update UI
 							formatToggle.querySelectorAll('.format-btn').forEach(b => b.classList.remove('active'));
 							btn.classList.add('active');
@@ -2348,15 +2483,15 @@
 						sortEmpId.addEventListener('click', () => {
 							const state = BranchManagerProfile.state;
 							const icon = document.getElementById('emp-id-sort-icon');
-							
+
 							// Toggle direction
 							state.manpowerSortDir = state.manpowerSortDir === 'asc' ? 'desc' : 'asc';
-							
+
 							// Update icon
 							if (icon) {
 								icon.className = state.manpowerSortDir === 'asc' ? 'fa fa-sort-asc' : 'fa fa-sort-desc';
 							}
-							
+
 							BranchManagerProfile.renderManpowerDetails();
 						});
 					}
@@ -2374,489 +2509,489 @@
 			/* =========================================================
 	   BRANCH MANAGER PROFILE
 	   ========================================================= */
-const BranchManagerProfile = {
-                el: {
-                    name: document.getElementById("bm-name"),
-                    mobile: document.getElementById("bm-mobile"),
-                    vintage: document.getElementById("bm-vintage"),
-                    doj: document.getElementById("bm-doj"),
-                    chName: document.getElementById("ch-name"),
-                    branchName: document.getElementById("branch-name"),
-                    branchDistrict: document.getElementById("branch-district"),
-                    branchVintage: document.getElementById("branch-vintage"),
-                    branchEmail: document.getElementById("branch-email"),
-                    chMobile: document.getElementById("ch-mobile"),
-                    branchOpeningDate: document.getElementById("branch-opening-date"),
-                    photo: document.getElementById("bm-photo"),
+			const BranchManagerProfile = {
+				el: {
+					name: document.getElementById("bm-name"),
+					mobile: document.getElementById("bm-mobile"),
+					vintage: document.getElementById("bm-vintage"),
+					doj: document.getElementById("bm-doj"),
+					chName: document.getElementById("ch-name"),
+					branchName: document.getElementById("branch-name"),
+					branchDistrict: document.getElementById("branch-district"),
+					branchVintage: document.getElementById("branch-vintage"),
+					branchEmail: document.getElementById("branch-email"),
+					chMobile: document.getElementById("ch-mobile"),
+					branchOpeningDate: document.getElementById("branch-opening-date"),
+					photo: document.getElementById("bm-photo"),
 
-                    // --- New Staff Overflow UI Elements ---
-                    staffStatusBadge: document.getElementById("staff-status-badge"),
-                    excessTag: document.getElementById("excess-tag"),
-                    barBlue: document.getElementById("bar-blue"),
-                    barRed: document.getElementById("bar-red"),
-                    budgetMarker: document.getElementById("budget-marker"),
-                    manpowerPercentage: document.getElementById("manpower-percentage"),
-                    budgetLabelVal: document.getElementById("budget-label-val"),
-                    actualLabelVal: document.getElementById("actual-label-val"),
-                    
-                    // Designation Chips
-                    bdeChip: document.getElementById("bde-chip-val"),
-                    bdoChip: document.getElementById("bdo-chip-val"),
-                    roChip: document.getElementById("ro-chip-val"),
-                    // --------------------------------------
+					// --- New Staff Overflow UI Elements ---
+					staffStatusBadge: document.getElementById("staff-status-badge"),
+					excessTag: document.getElementById("excess-tag"),
+					barBlue: document.getElementById("bar-blue"),
+					barRed: document.getElementById("bar-red"),
+					budgetMarker: document.getElementById("budget-marker"),
+					manpowerPercentage: document.getElementById("manpower-percentage"),
+					budgetLabelVal: document.getElementById("budget-label-val"),
+					actualLabelVal: document.getElementById("actual-label-val"),
 
-                    // --- Category Section Elements ---
-                    categoryCard: document.getElementById("category-card"),
-                    performanceStatus: document.getElementById("performance-status"),
-                    catTargetVal: document.getElementById("cat-target-val"),
-                    catAchievementVal: document.getElementById("cat-achievement-val"),
-                    catPercentageVal: document.getElementById("cat-percentage-val"),
-                    categoryHierarchy: document.getElementById("category-hierarchy"),
-                    fySelect: document.getElementById("fy-select"),
-                    // ---------------------------------
+					// Designation Chips
+					bdeChip: document.getElementById("bde-chip-val"),
+					bdoChip: document.getElementById("bdo-chip-val"),
+					roChip: document.getElementById("ro-chip-val"),
+					// --------------------------------------
 
-                    // Agent Spinner Elements
-                    ddsSpinnerProgress: document.getElementById("dds-spinner-progress"),
-                    ddsSpinnerPercentage: document.getElementById("dds-spinner-percentage"),
-                    ddsTotal: document.getElementById("dds-total"),
-                    ddsActive: document.getElementById("dds-active"),
-                    ddsInactiveCount: document.getElementById("dds-inactive-count"),
-                    ddsInactivePerc: document.getElementById("dds-inactive-perc"),
-                    ssSpinnerProgress: document.getElementById("ss-spinner-progress"),
-                    ssSpinnerPercentage: document.getElementById("ss-spinner-percentage"),
-                    ssTotal: document.getElementById("ss-total"),
-                    ssActive: document.getElementById("ss-active"),
-                    ssInactiveCount: document.getElementById("ss-inactive-count"),
-                    ssInactivePerc: document.getElementById("ss-inactive-perc"),
+					// --- Category Section Elements ---
+					categoryCard: document.getElementById("category-card"),
+					performanceStatus: document.getElementById("performance-status"),
+					catTargetVal: document.getElementById("cat-target-val"),
+					catAchievementVal: document.getElementById("cat-achievement-val"),
+					catPercentageVal: document.getElementById("cat-percentage-val"),
+					categoryHierarchy: document.getElementById("category-hierarchy"),
+					fySelect: document.getElementById("fy-select"),
+					// ---------------------------------
 
-                    // Deposit & Book Position (Direct mappings removed, handled by updateComp)
-                    totalBook: document.getElementById("total-book"),
+					// Agent Spinner Elements
+					ddsSpinnerProgress: document.getElementById("dds-spinner-progress"),
+					ddsSpinnerPercentage: document.getElementById("dds-spinner-percentage"),
+					ddsTotal: document.getElementById("dds-total"),
+					ddsActive: document.getElementById("dds-active"),
+					ddsInactiveCount: document.getElementById("dds-inactive-count"),
+					ddsInactivePerc: document.getElementById("dds-inactive-perc"),
+					ssSpinnerProgress: document.getElementById("ss-spinner-progress"),
+					ssSpinnerPercentage: document.getElementById("ss-spinner-percentage"),
+					ssTotal: document.getElementById("ss-total"),
+					ssActive: document.getElementById("ss-active"),
+					ssInactiveCount: document.getElementById("ss-inactive-count"),
+					ssInactivePerc: document.getElementById("ss-inactive-perc"),
 
-                    // Customer Base Snapshot
-                    totalCustomersId: document.getElementById("total-customers-id"),
+					// Deposit & Book Position (Direct mappings removed, handled by updateComp)
+					totalBook: document.getElementById("total-book"),
 
-                    // Demand & Collection Performance
-                    ddCollection: document.getElementById("dd-collection"),
-                    rdCollection: document.getElementById("rd-collection"),
-                    ddsDemand: document.getElementById("dds-demand"),
-                    ddsDemandVsCollection: document.getElementById("dds-demand-vs-collection"),
-                    smbgDemand: document.getElementById("smbg-demand"),
-                    smbgCollection: document.getElementById("smbg-collection"),
-                    smbgDemandVsCollection: document.getElementById("smbg-demand-vs-collection"),
-                    rdDemand: document.getElementById("rd-demand"),
-                    rdSmbgCollection: document.getElementById("rd-smbg-collection"),
-                    rdSmbgPending: document.getElementById("rd-smbg-pending"),
+					// Customer Base Snapshot
+					totalCustomersId: document.getElementById("total-customers-id"),
 
-                    // Productivity Details
-                    totalProductivity: document.getElementById("total-productivity"),
-                    bdoAndProductivity: document.getElementById("bdo-and-productivity"),
-                    bdeAndProductivity: document.getElementById("bde-and-productivity"),
-                    bdoProductivity: document.getElementById("bdo-productivity"),
-                    nmabAc: document.getElementById("nmab-ac"),
-                    mabAc: document.getElementById("mab-ac"),
-                    manpowerDetailsTbody: document.getElementById("manpower-details-tbody"),
-                    manpowerPipFilter: document.getElementById("manpower-pip-filter"),
-                    manpowerSearchInput: document.getElementById("manpower-search-input"),
-                },
+					// Demand & Collection Performance
+					ddCollection: document.getElementById("dd-collection"),
+					rdCollection: document.getElementById("rd-collection"),
+					ddsDemand: document.getElementById("dds-demand"),
+					ddsDemandVsCollection: document.getElementById("dds-demand-vs-collection"),
+					smbgDemand: document.getElementById("smbg-demand"),
+					smbgCollection: document.getElementById("smbg-collection"),
+					smbgDemandVsCollection: document.getElementById("smbg-demand-vs-collection"),
+					rdDemand: document.getElementById("rd-demand"),
+					rdSmbgCollection: document.getElementById("rd-smbg-collection"),
+					rdSmbgPending: document.getElementById("rd-smbg-pending"),
 
-                state: {
-                    performanceData: null,
-                    rawData: null,
-                    employees: [],
-                    manpowerFilter: 'all',
-                    manpowerSearchQuery: '',
-                    manpowerSortCol: 'employee_number',
-                    manpowerSortDir: 'desc'
-                },
+					// Productivity Details
+					totalProductivity: document.getElementById("total-productivity"),
+					bdoAndProductivity: document.getElementById("bdo-and-productivity"),
+					bdeAndProductivity: document.getElementById("bde-and-productivity"),
+					bdoProductivity: document.getElementById("bdo-productivity"),
+					nmabAc: document.getElementById("nmab-ac"),
+					mabAc: document.getElementById("mab-ac"),
+					manpowerDetailsTbody: document.getElementById("manpower-details-tbody"),
+					manpowerPipFilter: document.getElementById("manpower-pip-filter"),
+					manpowerSearchInput: document.getElementById("manpower-search-input"),
+				},
 
-                value(v) {
-                    if (!v || v === "#N/A") return "--";
-                    return v;
-                },
+				state: {
+					performanceData: null,
+					rawData: null,
+					employees: [],
+					manpowerFilter: 'all',
+					manpowerSearchQuery: '',
+					manpowerSortCol: 'employee_number',
+					manpowerSortDir: 'desc'
+				},
 
-                formatCurrency(value) {
-                    if (!value || value === 0 || value === "0") return "--";
-                    const numValue = parseFloat(value);
-                    if (isNaN(numValue)) return value;
+				value(v) {
+					if (!v || v === "#N/A") return "--";
+					return v;
+				},
 
-                    if (BranchDashboard.state.formatMode === "words") {
-                        if (Math.abs(numValue) >= 10000000) {
-                            return `${(numValue / 10000000).toFixed(2)} Cr`;
-                        }
-                        if (Math.abs(numValue) >= 100000) {
-                            return `${(numValue / 100000).toFixed(2)} L`;
-                        }
-                        if (Math.abs(numValue) >= 1000) {
-                            return `${(numValue / 1000).toFixed(2)} K`;
-                        }
-                        return numValue.toFixed(2);
-                    } else {
-                        return this.formatIndianNumber(numValue);
-                    }
-                },
+				formatCurrency(value) {
+					if (!value || value === 0 || value === "0") return "--";
+					const numValue = parseFloat(value);
+					if (isNaN(numValue)) return value;
 
-                formatAmount(value) {
-                    const formatted = this.formatCurrency(value);
-                    if (formatted === "--") return "--";
-                    return "₹ " + formatted;
-                },
+					if (BranchDashboard.state.formatMode === "words") {
+						if (Math.abs(numValue) >= 10000000) {
+							return `${(numValue / 10000000).toFixed(2)} Cr`;
+						}
+						if (Math.abs(numValue) >= 100000) {
+							return `${(numValue / 100000).toFixed(2)} L`;
+						}
+						if (Math.abs(numValue) >= 1000) {
+							return `${(numValue / 1000).toFixed(2)} K`;
+						}
+						return numValue.toFixed(2);
+					} else {
+						return this.formatIndianNumber(numValue);
+					}
+				},
 
-                formatDate(d) {
-                    if (!d) return "--";
-                    const datePart = d.split(' ')[0];
-                    const date = new Date(datePart);
-                    if (isNaN(date.getTime())) return "--";
-                    return date.toLocaleDateString("en-GB");
-                },
+				formatAmount(value) {
+					const formatted = this.formatCurrency(value);
+					if (formatted === "--") return "--";
+					return "₹ " + formatted;
+				},
 
-                formatIndianNumber(num) {
-                    if (isNaN(num) || num === null || num === undefined) return "--";
-                    const parts = num.toString().split(".");
-                    let lastThree = parts[0].substring(parts[0].length - 3);
-                    const otherNumbers = parts[0].substring(0, parts[0].length - 3);
-                    if (otherNumbers != "") lastThree = "," + lastThree;
-                    const formatted = otherNumbers.replace(/\B(?=(\d{2})+(?!\d))/g, ",") + lastThree;
-                    return parts.length > 1 ? formatted + "." + parts[1] : formatted;
-                },
+				formatDate(d) {
+					if (!d) return "--";
+					const datePart = d.split(' ')[0];
+					const date = new Date(datePart);
+					if (isNaN(date.getTime())) return "--";
+					return date.toLocaleDateString("en-GB");
+				},
 
-                updateSpinner(progressEl, percentageEl, totalEl, activeEl, inactiveCountEl, inactivePercEl, active, total) {
-                    const activeNum = parseInt(active) || 0;
-                    const totalNum = parseInt(total) || 0;
-                    const inactiveNum = totalNum - activeNum;
-                    const activePercentage = totalNum > 0 ? (activeNum / totalNum) * 100 : 0;
-                    const inactivePercentage = totalNum > 0 ? (inactiveNum / totalNum) * 100 : 0;
+				formatIndianNumber(num) {
+					if (isNaN(num) || num === null || num === undefined) return "--";
+					const parts = num.toString().split(".");
+					let lastThree = parts[0].substring(parts[0].length - 3);
+					const otherNumbers = parts[0].substring(0, parts[0].length - 3);
+					if (otherNumbers != "") lastThree = "," + lastThree;
+					const formatted = otherNumbers.replace(/\B(?=(\d{2})+(?!\d))/g, ",") + lastThree;
+					return parts.length > 1 ? formatted + "." + parts[1] : formatted;
+				},
 
-                    progressEl.style.strokeDasharray = `${activePercentage}, 100`;
-                    const valEl = percentageEl.querySelector('.perc-val');
-                    if (valEl) valEl.textContent = `${Math.round(activePercentage)}%`;
-                    else percentageEl.textContent = `${Math.round(activePercentage)}%`;
-                    
-                    totalEl.textContent = this.formatIndianNumber(totalNum);
-                    activeEl.textContent = this.formatIndianNumber(activeNum);
-                    
-                    if (inactiveCountEl) inactiveCountEl.textContent = this.formatIndianNumber(inactiveNum);
-                    if (inactivePercEl) inactivePercEl.textContent = inactivePercentage.toFixed(1) + "%";
-                },
+				updateSpinner(progressEl, percentageEl, totalEl, activeEl, inactiveCountEl, inactivePercEl, active, total) {
+					const activeNum = parseInt(active) || 0;
+					const totalNum = parseInt(total) || 0;
+					const inactiveNum = totalNum - activeNum;
+					const activePercentage = totalNum > 0 ? (activeNum / totalNum) * 100 : 0;
+					const inactivePercentage = totalNum > 0 ? (inactiveNum / totalNum) * 100 : 0;
 
-                updateCategoryUI(period) {
-                    if (!this.state.performanceData) return;
+					progressEl.style.strokeDasharray = `${activePercentage}, 100`;
+					const valEl = percentageEl.querySelector('.perc-val');
+					if (valEl) valEl.textContent = `${Math.round(activePercentage)}%`;
+					else percentageEl.textContent = `${Math.round(activePercentage)}%`;
 
-                    const data = this.state.performanceData[period];
-                    if (!data) return;
+					totalEl.textContent = this.formatIndianNumber(totalNum);
+					activeEl.textContent = this.formatIndianNumber(activeNum);
 
-                    // Update Labels
-                    this.el.performanceStatus.textContent = data.category;
-                    this.el.catTargetVal.textContent = this.formatAmount(data.target);
-                    this.el.catAchievementVal.textContent = this.formatAmount(data.achievement);
-                    this.el.catPercentageVal.textContent = data.percentage;
+					if (inactiveCountEl) inactiveCountEl.textContent = this.formatIndianNumber(inactiveNum);
+					if (inactivePercEl) inactivePercEl.textContent = inactivePercentage.toFixed(1) + "%";
+				},
 
-                    // Update Hierarchy Badges
-                    const badges = this.el.categoryHierarchy.querySelectorAll('.hierarchy-badge');
-                    badges.forEach(b => b.classList.remove('active'));
+				updateCategoryUI(period) {
+					if (!this.state.performanceData) return;
 
-                    const categoryMap = {
-                        "Pinnacle": 0,
-                        "Master": 1,
-                        "Accelerator": 2,
-                        "Starter": 3,
-                        "Learner": 4,
-                        "Zero Level": 5,
-                        "Zero": 5
-                    };
+					const data = this.state.performanceData[period];
+					if (!data) return;
 
-                    const index = categoryMap[data.category];
-                    if (index !== undefined && badges[index]) {
-                        badges[index].classList.add('active');
-                    }
-                },
+					// Update Labels
+					this.el.performanceStatus.textContent = data.category;
+					this.el.catTargetVal.textContent = this.formatAmount(data.target);
+					this.el.catAchievementVal.textContent = this.formatAmount(data.achievement);
+					this.el.catPercentageVal.textContent = data.percentage;
 
-                render() {
-                    if (!this.state.rawData) return;
-                    const d = this.state.rawData;
-                    const branchEmailValue = d._branch_email_value; // Retrieve stored email
+					// Update Hierarchy Badges
+					const badges = this.el.categoryHierarchy.querySelectorAll('.hierarchy-badge');
+					badges.forEach(b => b.classList.remove('active'));
 
-                    // Header Info
-                    this.el.name.textContent = this.value(d.bm_name);
-                    this.el.mobile.textContent = this.value(d.bm_mob_no);
-                    this.el.vintage.textContent = this.calculateExperience(d.bm_doj);
-                    this.el.doj.textContent = this.formatDate(d.bm_doj);
-                    this.el.branchOpeningDate.textContent = this.formatDate(d.branch_opening_date);
-                    this.el.chName.textContent = this.value(d.ch_name);
-                    this.el.branchName.textContent = this.value(d.branch_name);
-                    this.el.branchDistrict.textContent = this.value(d.district);
-                    this.el.branchVintage.textContent = this.calculateExperience(d.branch_opening_date);
-                    this.el.branchEmail.textContent = this.value(branchEmailValue);
-                    this.el.chMobile.textContent = this.value(d.ch_mob_no);
+					const categoryMap = {
+						"Pinnacle": 0,
+						"Master": 1,
+						"Accelerator": 2,
+						"Starter": 3,
+						"Learner": 4,
+						"Zero Level": 5,
+						"Zero": 5
+					};
 
-                    // --- Staff Details & Overflow Logic ---
-                    const budget = parseInt(d.total_no_of_budgeted_staff) || 0;
-                    const actual = parseInt(d.staff_count) || 0;
-                    const bdeCount = parseInt(d.bde) || 0;
-                    const bdoCount = parseInt(d.bdo) || 0;
-                    const roCount = parseInt(d.ro) || 0;
+					const index = categoryMap[data.category];
+					if (index !== undefined && badges[index]) {
+						badges[index].classList.add('active');
+					}
+				},
 
-                    // Set Text Values
-                    this.el.budgetLabelVal.textContent = this.formatIndianNumber(budget);
-                    this.el.actualLabelVal.textContent = this.formatIndianNumber(actual);
-                    this.el.bdeChip.textContent = this.formatIndianNumber(bdeCount);
-                    this.el.bdoChip.textContent = this.formatIndianNumber(bdoCount);
-                    this.el.roChip.textContent = this.formatIndianNumber(roCount);
+				render() {
+					if (!this.state.rawData) return;
+					const d = this.state.rawData;
+					const branchEmailValue = d._branch_email_value; // Retrieve stored email
 
-                    // Calculate Manpower Percentage
-                    const mpPerc = budget > 0 ? (actual / budget * 100) : 0;
-                    this.el.manpowerPercentage.textContent = mpPerc.toFixed(2) + "%";
+					// Header Info
+					this.el.name.textContent = this.value(d.bm_name);
+					this.el.mobile.textContent = this.value(d.bm_mob_no);
+					this.el.vintage.textContent = this.calculateExperience(d.bm_doj);
+					this.el.doj.textContent = this.formatDate(d.bm_doj);
+					this.el.branchOpeningDate.textContent = this.formatDate(d.branch_opening_date);
+					this.el.chName.textContent = this.value(d.ch_name);
+					this.el.branchName.textContent = this.value(d.branch_name);
+					this.el.branchDistrict.textContent = this.value(d.district);
+					this.el.branchVintage.textContent = this.calculateExperience(d.branch_opening_date);
+					this.el.branchEmail.textContent = this.value(branchEmailValue);
+					this.el.chMobile.textContent = this.value(d.ch_mob_no);
 
-                    if (actual > budget) {
-                        const excess = actual - budget;
-                        this.el.staffStatusBadge.className = "status-badge overstaffed";
-                        this.el.staffStatusBadge.textContent = "Critical: Overstaffed";
-                        
-                        // Calculate widths relative to the 'Actual' total
-                        const blueWidth = (budget / actual) * 100;
-                        const redWidth = (excess / actual) * 100;
-                        
-                        this.el.excessTag.style.display = "block";
-                        this.el.excessTag.style.left = blueWidth + "%";
-                        this.el.excessTag.textContent = `+${excess} Excess`;
+					// --- Staff Details & Overflow Logic ---
+					const budget = parseInt(d.total_no_of_budgeted_staff) || 0;
+					const actual = parseInt(d.staff_count) || 0;
+					const bdeCount = parseInt(d.bde) || 0;
+					const bdoCount = parseInt(d.bdo) || 0;
+					const roCount = parseInt(d.ro) || 0;
 
-                        this.el.barBlue.style.width = blueWidth + "%";
-                        this.el.barRed.style.width = redWidth + "%";
-                        this.el.budgetMarker.style.left = blueWidth + "%";
-                        this.el.budgetMarker.style.display = "block";
-                    } else {
-                        this.el.staffStatusBadge.className = "status-badge optimal";
-                        this.el.staffStatusBadge.textContent = "Optimal";
-                        this.el.excessTag.style.display = "none";
-                        
-                        // Normal progress relative to Budget
-                        const fillPercent = budget > 0 ? (actual / budget) * 100 : 0;
-                        this.el.barBlue.style.width = fillPercent + "%";
-                        this.el.barRed.style.width = "0%";
-                        this.el.budgetMarker.style.display = "none";
-                    }
+					// Set Text Values
+					this.el.budgetLabelVal.textContent = this.formatIndianNumber(budget);
+					this.el.actualLabelVal.textContent = this.formatIndianNumber(actual);
+					this.el.bdeChip.textContent = this.formatIndianNumber(bdeCount);
+					this.el.bdoChip.textContent = this.formatIndianNumber(bdoCount);
+					this.el.roChip.textContent = this.formatIndianNumber(roCount);
 
-                    // Update DDS and SS agent spinners
-                    this.updateSpinner(
-                        this.el.ddsSpinnerProgress,
-                        this.el.ddsSpinnerPercentage,
-                        this.el.ddsTotal,
-                        this.el.ddsActive,
-                        this.el.ddsInactiveCount,
-                        this.el.ddsInactivePerc,
-                        d.total_active_dds_agent,
-                        d.total_dds_agent,
-                    );
-                    this.updateSpinner(
-                        this.el.ssSpinnerProgress,
-                        this.el.ssSpinnerPercentage,
-                        this.el.ssTotal,
-                        this.el.ssActive,
-                        this.el.ssInactiveCount,
-                        this.el.ssInactivePerc,
-                        d.total_active_ss_agent,
-                        d.total_ss_agent,
-                    );
+					// Calculate Manpower Percentage
+					const mpPerc = budget > 0 ? (actual / budget * 100) : 0;
+					this.el.manpowerPercentage.textContent = mpPerc.toFixed(2) + "%";
 
-                    // --- COMPOSITION UPDATES (DEPOSIT & BOOK) ---
-                    const totalBookVal = parseFloat(d.total_book) || 0;
-                    this.el.totalBook.textContent = this.formatAmount(d.total_book);
-                    
-                    const updateComp = (id, val, total) => {
-                        const amountEl = document.getElementById(id);
-                        const percEl = document.getElementById(id + '-perc');
-                        const barEl = document.getElementById(id + '-bar');
-                        const numVal = parseFloat(val) || 0;
-                        const perc = total > 0 ? (numVal / total * 100) : 0;
-                        
-                        if (amountEl) amountEl.textContent = this.formatAmount(val);
-                        if (percEl) percEl.textContent = perc.toFixed(1) + '%';
-                        if (barEl) barEl.style.width = perc + '%';
-                    };
+					if (actual > budget) {
+						const excess = actual - budget;
+						this.el.staffStatusBadge.className = "status-badge overstaffed";
+						this.el.staffStatusBadge.textContent = "Critical: Overstaffed";
 
-                    updateComp('sa-book', d.sa_book, totalBookVal);
-                    updateComp('ca-book', d.ca_book, totalBookVal);
-                    updateComp('fd-book', d.fd_book, totalBookVal);
-                    updateComp('rd-book', d.rd_book, totalBookVal);
-                    updateComp('dds-book', d.dds_book, totalBookVal);
-                    updateComp('smbg-book', d.smbg_book, totalBookVal);
+						// Calculate widths relative to the 'Actual' total
+						const blueWidth = (budget / actual) * 100;
+						const redWidth = (excess / actual) * 100;
 
-                    // --- COMPOSITION UPDATES (CUSTOMERS) ---
-                    const totalCustVal = parseFloat(d.total_customers_id) || 0;
-                    this.el.totalCustomersId.textContent = this.formatIndianNumber(totalCustVal);
-                    
-                    const updateCustComp = (amountId, compPrefix, val, total) => {
-                        const amountEl = document.getElementById(amountId);
-                        const percEl = document.getElementById(compPrefix + '-perc');
-                        const barEl = document.getElementById(compPrefix + '-bar');
-                        const numVal = parseFloat(val) || 0;
-                        const perc = total > 0 ? (numVal / total * 100) : 0;
-                        
-                        if (amountEl) amountEl.textContent = this.formatIndianNumber(numVal);
-                        if (percEl) percEl.textContent = perc.toFixed(1) + '%';
-                        if (barEl) barEl.style.width = perc + '%';
-                    };
+						this.el.excessTag.style.display = "block";
+						this.el.excessTag.style.left = blueWidth + "%";
+						this.el.excessTag.textContent = `+${excess} Excess`;
 
-                    updateCustComp('total-sa-no-of-customers', 'sa-cust', d.total_sa_no_of_customers, totalCustVal);
-                    updateCustComp('total-ca-no-of-customers', 'ca-cust', d.total_ca_no_of_customers, totalCustVal);
-                    updateCustComp('total-fd-no-of-customers', 'fd-cust', d.total_fd_no_of_customers, totalCustVal);
-                    updateCustComp('total-rd-no-of_customers', 'rd-cust', d.total_rd_no_of_customers, totalCustVal);
-                    updateCustComp('total-dds-no-of-customers', 'dds-cust', d.total_dds_no_of_customers, totalCustVal);
-                    updateCustComp('total-smbg-no-of-customers', 'smbg-cust', d.total_smbg_no_of_customers, totalCustVal);
+						this.el.barBlue.style.width = blueWidth + "%";
+						this.el.barRed.style.width = redWidth + "%";
+						this.el.budgetMarker.style.left = blueWidth + "%";
+						this.el.budgetMarker.style.display = "block";
+					} else {
+						this.el.staffStatusBadge.className = "status-badge optimal";
+						this.el.staffStatusBadge.textContent = "Optimal";
+						this.el.excessTag.style.display = "none";
 
-                    // Populate Demand & Collection Performance
-                    this.el.ddCollection.textContent = this.formatAmount(d.dds_collection);
-                    this.el.rdCollection.textContent = this.formatAmount(d.rd_collection);
-                    this.el.ddsDemand.textContent = this.formatAmount(d.dds_demand);
-                    this.el.ddsDemandVsCollection.textContent = this.formatIndianNumber(parseFloat(d.dds_demand_vs_collection || 0).toFixed(2)) + "%";
-                    this.el.smbgDemand.textContent = this.formatAmount(d.smbg_demand);
-                    this.el.smbgCollection.textContent = this.formatAmount(d.smbg_collection);
-                    this.el.smbgDemandVsCollection.textContent = this.formatIndianNumber(parseFloat(d.smbg_demand_vs_collection || 0).toFixed(2)) + "%";
-                    this.el.rdDemand.textContent = this.formatAmount(d.rd_demand);
-                    this.el.rdSmbgCollection.textContent = this.formatAmount(d.rd_smbg_collection);
-                    this.el.rdSmbgPending.textContent = this.formatAmount(d.rd_smbg_pending);
+						// Normal progress relative to Budget
+						const fillPercent = budget > 0 ? (actual / budget) * 100 : 0;
+						this.el.barBlue.style.width = fillPercent + "%";
+						this.el.barRed.style.width = "0%";
+						this.el.budgetMarker.style.display = "none";
+					}
 
-                    // Populate Productivity Details
-                    if (this.el.totalProductivity) this.el.totalProductivity.textContent = this.formatIndianNumber(parseFloat(d.total_productivity || 0).toFixed(2));
-                    if (this.el.bdoAndProductivity) this.el.bdoAndProductivity.textContent = this.formatIndianNumber(parseFloat(d.bdo_and_productivity || 0).toFixed(2));
-                    if (this.el.bdeAndProductivity) this.el.bdeAndProductivity.textContent = this.formatIndianNumber(parseFloat(d.bde_and_productivity || 0).toFixed(2));
-                    if (this.el.bdoProductivity) this.el.bdoProductivity.textContent = this.formatIndianNumber(parseFloat(d.bdo_productivity || 0).toFixed(2));
-                    if (this.el.nmabAc) this.el.nmabAc.textContent = this.formatIndianNumber(d.nmab_ac);
-                    if (this.el.mabAc) this.el.mabAc.textContent = this.formatIndianNumber(d.mab_ac);
+					// Update DDS and SS agent spinners
+					this.updateSpinner(
+						this.el.ddsSpinnerProgress,
+						this.el.ddsSpinnerPercentage,
+						this.el.ddsTotal,
+						this.el.ddsActive,
+						this.el.ddsInactiveCount,
+						this.el.ddsInactivePerc,
+						d.total_active_dds_agent,
+						d.total_dds_agent,
+					);
+					this.updateSpinner(
+						this.el.ssSpinnerProgress,
+						this.el.ssSpinnerPercentage,
+						this.el.ssTotal,
+						this.el.ssActive,
+						this.el.ssInactiveCount,
+						this.el.ssInactivePerc,
+						d.total_active_ss_agent,
+						d.total_ss_agent,
+					);
 
-                    this.el.photo.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(d.bm_name || "BM")}&background=097c80&color=fff&size=256`;
-                    
-                    // Re-render performance category with current tab
-                    const activeTab = document.querySelector('#category-tabs .category-tab.active');
-                    if (activeTab) {
-                        this.updateCategoryUI(activeTab.dataset.period);
-                    }
-                },
+					// --- COMPOSITION UPDATES (DEPOSIT & BOOK) ---
+					const totalBookVal = parseFloat(d.total_book) || 0;
+					this.el.totalBook.textContent = this.formatAmount(d.total_book);
 
-                calculateExperience(doj) {
-                    if (!doj) return "--";
-                    const datePart = doj.split(' ')[0];
-                    const start = new Date(datePart);
-                    const now = new Date();
-                    if (isNaN(start.getTime())) return "--";
-                    
-                    let years = now.getFullYear() - start.getFullYear();
-                    let months = now.getMonth() - start.getMonth();
-                    
-                    if (now.getDate() < start.getDate()) {
-                        months--;
-                    }
-                    
-                    if (months < 0) {
-                        years--;
-                        months += 12;
-                    }
-                    
-                    if (years <= 0 && months <= 0) return "New Joinee";
-                    
-                    let parts = [];
-                    if (years > 0) {
-                        parts.push(years === 1 ? "1 yr" : `${years} yrs`);
-                    }
-                    if (months > 0) {
-                        parts.push(months === 1 ? "1 mo" : `${months} mos`);
-                    }
-                    
-                    return parts.join(" ") || "New Joinee";
-                },
+					const updateComp = (id, val, total) => {
+						const amountEl = document.getElementById(id);
+						const percEl = document.getElementById(id + '-perc');
+						const barEl = document.getElementById(id + '-bar');
+						const numVal = parseFloat(val) || 0;
+						const perc = total > 0 ? (numVal / total * 100) : 0;
 
-                async loadEmployeeDetails(solId) {
-                    try {
-                        const r = await fetch(`/api/method/custom_report.branch_v1.get_employee_details_by_sol?sol_id=${solId}`);
-                        const j = await r.json();
-                        
-                        this.state.employees = (j.message && j.message.data) ? j.message.data : [];
-                        this.renderManpowerDetails();
-                    } catch (e) {
-                        console.error("Failed to load employee details", e);
-                         if (this.el.manpowerDetailsTbody) {
-                            this.el.manpowerDetailsTbody.innerHTML = `
+						if (amountEl) amountEl.textContent = this.formatAmount(val);
+						if (percEl) percEl.textContent = perc.toFixed(1) + '%';
+						if (barEl) barEl.style.width = perc + '%';
+					};
+
+					updateComp('sa-book', d.sa_book, totalBookVal);
+					updateComp('ca-book', d.ca_book, totalBookVal);
+					updateComp('fd-book', d.fd_book, totalBookVal);
+					updateComp('rd-book', d.rd_book, totalBookVal);
+					updateComp('dds-book', d.dds_book, totalBookVal);
+					updateComp('smbg-book', d.smbg_book, totalBookVal);
+
+					// --- COMPOSITION UPDATES (CUSTOMERS) ---
+					const totalCustVal = parseFloat(d.total_customers_id) || 0;
+					this.el.totalCustomersId.textContent = this.formatIndianNumber(totalCustVal);
+
+					const updateCustComp = (amountId, compPrefix, val, total) => {
+						const amountEl = document.getElementById(amountId);
+						const percEl = document.getElementById(compPrefix + '-perc');
+						const barEl = document.getElementById(compPrefix + '-bar');
+						const numVal = parseFloat(val) || 0;
+						const perc = total > 0 ? (numVal / total * 100) : 0;
+
+						if (amountEl) amountEl.textContent = this.formatIndianNumber(numVal);
+						if (percEl) percEl.textContent = perc.toFixed(1) + '%';
+						if (barEl) barEl.style.width = perc + '%';
+					};
+
+					updateCustComp('total-sa-no-of-customers', 'sa-cust', d.total_sa_no_of_customers, totalCustVal);
+					updateCustComp('total-ca-no-of-customers', 'ca-cust', d.total_ca_no_of_customers, totalCustVal);
+					updateCustComp('total-fd-no-of-customers', 'fd-cust', d.total_fd_no_of_customers, totalCustVal);
+					updateCustComp('total-rd-no-of_customers', 'rd-cust', d.total_rd_no_of_customers, totalCustVal);
+					updateCustComp('total-dds-no-of-customers', 'dds-cust', d.total_dds_no_of_customers, totalCustVal);
+					updateCustComp('total-smbg-no-of-customers', 'smbg-cust', d.total_smbg_no_of_customers, totalCustVal);
+
+					// Populate Demand & Collection Performance
+					this.el.ddCollection.textContent = this.formatAmount(d.dds_collection);
+					this.el.rdCollection.textContent = this.formatAmount(d.rd_collection);
+					this.el.ddsDemand.textContent = this.formatAmount(d.dds_demand);
+					this.el.ddsDemandVsCollection.textContent = this.formatIndianNumber(parseFloat(d.dds_demand_vs_collection || 0).toFixed(2)) + "%";
+					this.el.smbgDemand.textContent = this.formatAmount(d.smbg_demand);
+					this.el.smbgCollection.textContent = this.formatAmount(d.smbg_collection);
+					this.el.smbgDemandVsCollection.textContent = this.formatIndianNumber(parseFloat(d.smbg_demand_vs_collection || 0).toFixed(2)) + "%";
+					this.el.rdDemand.textContent = this.formatAmount(d.rd_demand);
+					this.el.rdSmbgCollection.textContent = this.formatAmount(d.rd_smbg_collection);
+					this.el.rdSmbgPending.textContent = this.formatAmount(d.rd_smbg_pending);
+
+					// Populate Productivity Details
+					if (this.el.totalProductivity) this.el.totalProductivity.textContent = this.formatIndianNumber(parseFloat(d.total_productivity || 0).toFixed(2));
+					if (this.el.bdoAndProductivity) this.el.bdoAndProductivity.textContent = this.formatIndianNumber(parseFloat(d.bdo_and_productivity || 0).toFixed(2));
+					if (this.el.bdeAndProductivity) this.el.bdeAndProductivity.textContent = this.formatIndianNumber(parseFloat(d.bde_and_productivity || 0).toFixed(2));
+					if (this.el.bdoProductivity) this.el.bdoProductivity.textContent = this.formatIndianNumber(parseFloat(d.bdo_productivity || 0).toFixed(2));
+					if (this.el.nmabAc) this.el.nmabAc.textContent = this.formatIndianNumber(d.nmab_ac);
+					if (this.el.mabAc) this.el.mabAc.textContent = this.formatIndianNumber(d.mab_ac);
+
+					this.el.photo.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(d.bm_name || "BM")}&background=097c80&color=fff&size=256`;
+
+					// Re-render performance category with current tab
+					const activeTab = document.querySelector('#category-tabs .category-tab.active');
+					if (activeTab) {
+						this.updateCategoryUI(activeTab.dataset.period);
+					}
+				},
+
+				calculateExperience(doj) {
+					if (!doj) return "--";
+					const datePart = doj.split(' ')[0];
+					const start = new Date(datePart);
+					const now = new Date();
+					if (isNaN(start.getTime())) return "--";
+
+					let years = now.getFullYear() - start.getFullYear();
+					let months = now.getMonth() - start.getMonth();
+
+					if (now.getDate() < start.getDate()) {
+						months--;
+					}
+
+					if (months < 0) {
+						years--;
+						months += 12;
+					}
+
+					if (years <= 0 && months <= 0) return "New Joinee";
+
+					let parts = [];
+					if (years > 0) {
+						parts.push(years === 1 ? "1 yr" : `${years} yrs`);
+					}
+					if (months > 0) {
+						parts.push(months === 1 ? "1 mo" : `${months} mos`);
+					}
+
+					return parts.join(" ") || "New Joinee";
+				},
+
+				async loadEmployeeDetails(solId) {
+					try {
+						const r = await fetch(`/api/method/custom_report.branch_v1.get_employee_details_by_sol?sol_id=${solId}`);
+						const j = await r.json();
+
+						this.state.employees = (j.message && j.message.data) ? j.message.data : [];
+						this.renderManpowerDetails();
+					} catch (e) {
+						console.error("Failed to load employee details", e);
+						if (this.el.manpowerDetailsTbody) {
+							this.el.manpowerDetailsTbody.innerHTML = `
                                 <tr>
                                     <td colspan="9" style="text-align: center; color: #dc2626; padding: 20px;">
                                         Error loading data.
                                     </td>
                                 </tr>
                             `;
-                         }
-                    }
-                },
+						}
+					}
+				},
 
-                renderManpowerDetails() {
-                    const tbody = this.el.manpowerDetailsTbody;
-                    if (!tbody) return;
-                    
-                    tbody.innerHTML = ""; // Clear existing
-                    const filter = this.state.manpowerFilter;
-                    const query = this.state.manpowerSearchQuery.toLowerCase().trim();
+				renderManpowerDetails() {
+					const tbody = this.el.manpowerDetailsTbody;
+					if (!tbody) return;
 
-                    let filteredEmployees = this.state.employees.filter(emp => {
-                        // 1. PIP Filter
-                        let passPip = true;
-                        if (filter === 'pip') passPip = emp.pip_status == 1;
-                        if (filter === 'non-pip') passPip = emp.pip_status != 1;
-                        
-                        if (!passPip) return false;
+					tbody.innerHTML = ""; // Clear existing
+					const filter = this.state.manpowerFilter;
+					const query = this.state.manpowerSearchQuery.toLowerCase().trim();
 
-                        // 2. Search Filter (ID or Name)
-                        if (query) {
-                            const name = (emp.employee_name || "").toLowerCase();
-                            const id = (emp.employee_number || "").toLowerCase();
-                            return name.includes(query) || id.includes(query);
-                        }
+					let filteredEmployees = this.state.employees.filter(emp => {
+						// 1. PIP Filter
+						let passPip = true;
+						if (filter === 'pip') passPip = emp.pip_status == 1;
+						if (filter === 'non-pip') passPip = emp.pip_status != 1;
 
-                        return true;
-                    });
+						if (!passPip) return false;
 
-                    // Sorting Logic
-                    const sortCol = this.state.manpowerSortCol;
-                    const sortDir = this.state.manpowerSortDir;
-                    
-                    if (sortCol) {
-                        filteredEmployees.sort((a, b) => {
-                            let valA = a[sortCol] || "";
-                            let valB = b[sortCol] || "";
+						// 2. Search Filter (ID or Name)
+						if (query) {
+							const name = (emp.employee_name || "").toLowerCase();
+							const id = (emp.employee_number || "").toLowerCase();
+							return name.includes(query) || id.includes(query);
+						}
 
-                            // Try to compare as numbers if they look like numbers
-                            const numA = parseFloat(valA);
-                            const numB = parseFloat(valB);
-                            
-                            if (!isNaN(numA) && !isNaN(numB)) {
-                                return sortDir === 'asc' ? numA - numB : numB - numA;
-                            }
+						return true;
+					});
 
-                            // String comparison fallback
-                            if (sortDir === 'asc') {
-                                return valA.toString().localeCompare(valB.toString());
-                            } else {
-                                return valB.toString().localeCompare(valA.toString());
-                            }
-                        });
-                    }
+					// Sorting Logic
+					const sortCol = this.state.manpowerSortCol;
+					const sortDir = this.state.manpowerSortDir;
 
-                    if (!filteredEmployees || filteredEmployees.length === 0) {
-                        tbody.innerHTML = `
+					if (sortCol) {
+						filteredEmployees.sort((a, b) => {
+							let valA = a[sortCol] || "";
+							let valB = b[sortCol] || "";
+
+							// Try to compare as numbers if they look like numbers
+							const numA = parseFloat(valA);
+							const numB = parseFloat(valB);
+
+							if (!isNaN(numA) && !isNaN(numB)) {
+								return sortDir === 'asc' ? numA - numB : numB - numA;
+							}
+
+							// String comparison fallback
+							if (sortDir === 'asc') {
+								return valA.toString().localeCompare(valB.toString());
+							} else {
+								return valB.toString().localeCompare(valA.toString());
+							}
+						});
+					}
+
+					if (!filteredEmployees || filteredEmployees.length === 0) {
+						tbody.innerHTML = `
                             <tr>
                                 <td colspan="9" style="text-align: center; color: #64748b; padding: 20px;">
                                     No matching manpower data available.
                                 </td>
                             </tr>
                         `;
-                        return;
-                    }
+						return;
+					}
 
-                    filteredEmployees.forEach(emp => {
-                        const tr = document.createElement("tr");
-                        const isPip = emp.pip_status == 1;
+					filteredEmployees.forEach(emp => {
+						const tr = document.createElement("tr");
+						const isPip = emp.pip_status == 1;
 
-                        if (isPip) {
-                            tr.classList.add("pip-row");
-                        }
+						if (isPip) {
+							tr.classList.add("pip-row");
+						}
 
-                        tr.innerHTML = `
+						tr.innerHTML = `
                             <td>${this.value(emp.employee_number)}</td>
                             <td>
                                 <div style="font-weight: 600; color: #333;">${this.value(emp.employee_name)}</div>
@@ -2872,39 +3007,40 @@ const BranchManagerProfile = {
                                 ${isPip ? '<span style="color: #dc2626; font-weight: 800; background: #fecaca; padding: 2px 8px; border-radius: 4px; font-size: 10px;">PIP</span>' : ''}
                             </td>
                         `;
-                        tbody.appendChild(tr);
-                    });
-                },
+						tbody.appendChild(tr);
+					});
+				},
 
-                async load(solId, branchEmailValue) {
-                    try {
-                        const r = await fetch(
-                            `/api/method/custom_report.branch_v1.get_branch_profile_data?sol_id=${solId}`,
-                        );
-                        const j = await r.json();
-                        const d = j.message || {};
-                        d._branch_email_value = branchEmailValue; // Store email in raw data
-                        this.state.rawData = d;
+				async load(solId, branchEmailValue) {
+					try {
+						const r = await fetch(
+							`/api/method/custom_report.branch_v1.get_branch_profile_data?sol_id=${solId}`,
+						);
+						const j = await r.json();
+						const d = j.message || {};
+						d._branch_email_value = branchEmailValue; // Store email in raw data
+						this.state.rawData = d;
 
-                        this.render();
-                        this.loadEmployeeDetails(solId);
+						this.render();
+						this.loadEmployeeDetails(solId);
 
-                        // --- Fetch Performance Data ---
-                        const selectedFy = this.el.fySelect.value;
-                        const perfR = await fetch(`/api/method/custom_report.branch_v1.get_performance_data?sol_id=${solId}&fy=${selectedFy}`);
-                        const perfJ = await perfR.json();
-                        if (perfJ.message && perfJ.message.data_exists) {
-                            this.state.performanceData = perfJ.message.performance;
-                            this.updateCategoryUI('monthly');
-                        }
-                        // ------------------------------
-                    } catch (e) {
-                        console.error("Profile Load Error:", e);
-                        this.el.name.textContent = "Branch Manager data unavailable";
-                    }
-                },
-            };
+						// --- Fetch Performance Data ---
+						const selectedFy = this.el.fySelect.value;
+						const perfR = await fetch(`/api/method/custom_report.branch_v1.get_performance_data?sol_id=${solId}&fy=${selectedFy}`);
+						const perfJ = await perfR.json();
+						if (perfJ.message && perfJ.message.data_exists) {
+							this.state.performanceData = perfJ.message.performance;
+							this.updateCategoryUI('monthly');
+						}
+						// ------------------------------
+					} catch (e) {
+						console.error("Profile Load Error:", e);
+						this.el.name.textContent = "Branch Manager data unavailable";
+					}
+				},
+			};
 			document.addEventListener("DOMContentLoaded", () => BranchDashboard.init());
 		</script>
-	</body>
+</body>
+
 </html>
