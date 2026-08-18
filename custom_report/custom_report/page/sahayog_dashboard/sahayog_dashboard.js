@@ -12921,18 +12921,18 @@ class DrishtiDashboard {
 				let achSubText = "";
 				if (item.ach > 0 || item.tgt > 0) {
 					if (item.tgt > 0 && item.ach >= item.tgt) {
-						achSubText = `<div style="font-size: 10px; color: #15803d; font-weight: 600; margin-top: 2px;">↗ ${pctStr}</div>`;
+						achSubText = `<div style="font-size: 10px; color: #15803d; font-weight: 600; margin-top: 2px; white-space: nowrap;">↗ ${pctStr}</div>`;
 					} else if (item.tgt > 0 && item.ach < item.tgt) {
-						achSubText = `<div style="font-size: 10px; color: #b91c1c; font-weight: 600; margin-top: 2px;">↓ ${pctStr}</div>`;
+						achSubText = `<div style="font-size: 10px; color: #b91c1c; font-weight: 600; margin-top: 2px; white-space: nowrap;">↓ ${pctStr}</div>`;
 					} else {
-						achSubText = `<div style="font-size: 10px; color: #64748b; font-weight: 500; margin-top: 2px;">${pctStr}</div>`;
+						achSubText = `<div style="font-size: 10px; color: #64748b; font-weight: 500; margin-top: 2px; white-space: nowrap;">${pctStr}</div>`;
 					}
 				}
 
 				return `
-					<td data-product="${p}" data-type="tgt" style="text-align: right; padding: 6px 10px; border-left: 1px solid #cbd5e1; font-size: 13px; font-weight: 600; color: #1e293b; vertical-align: middle;">${tgtStr}</td>
-					<td data-product="${p}" data-type="ach" style="text-align: right; padding: 6px 10px; font-size: 13px; font-weight: 600; color: #1e293b; vertical-align: middle;">
-						<div>${achStr}</div>
+					<td data-product="${p}" data-type="tgt" style="text-align: right; padding: 6px 8px; border-left: 1px solid #cbd5e1; font-size: 12px; font-weight: 600; color: #1e293b; vertical-align: middle; white-space: nowrap;">${tgtStr}</td>
+					<td data-product="${p}" data-type="ach" style="text-align: right; padding: 6px 8px; font-size: 12px; font-weight: 600; color: #1e293b; vertical-align: middle; white-space: nowrap;">
+						<div style="white-space: nowrap;">${achStr}</div>
 						${achSubText}
 					</td>
 				`;
@@ -12947,15 +12947,15 @@ class DrishtiDashboard {
 
 			let gapHtml = "";
 			if (gapRaw > 0) {
-				gapHtml = `<div style="font-size: 10px; color: #b91c1c; font-weight: 600; margin-top: 2px;">Gap: ${fmtGap(tgt, ach)} (${fmtGapPct(tgt, ach)})</div>`;
+				gapHtml = `<div style="font-size: 10px; color: #b91c1c; font-weight: 600; margin-top: 2px; white-space: nowrap;">Gap: ${fmtGap(tgt, ach)} (${fmtGapPct(tgt, ach)})</div>`;
 			} else {
-				gapHtml = `<div style="font-size: 10px; color: #15803d; font-weight: 600; margin-top: 2px;">Surplus: ${fmtAmt(Math.abs(gapRaw))}</div>`;
+				gapHtml = `<div style="font-size: 10px; color: #15803d; font-weight: 600; margin-top: 2px; white-space: nowrap;">Surplus: ${fmtAmt(Math.abs(gapRaw))}</div>`;
 			}
 
 			return `
-				<td data-product="TOTAL" style="text-align: right; padding: 6px 12px; border-left: 2px solid #73a8aa; vertical-align: middle; min-width: 160px; background: rgba(65,125,129,0.03);">
-					<div style="font-size: 11px; color: #475569; font-weight: 600;">TGT: <span style="font-weight: 700; color: #1e293b;">${tgtStr}</span></div>
-					<div style="font-size: 13px; font-weight: 800; color: #0f172a; margin-top: 2px;">ACH: ${achStr} <span style="font-size: 11px; font-weight: 700; color: #0d9488;">(${pctStr})</span></div>
+				<td data-product="TOTAL" style="text-align: right; padding: 6px 10px; border-left: 2px solid #73a8aa; vertical-align: middle; min-width: 150px; background: rgba(65,125,129,0.03); white-space: nowrap;">
+					<div style="font-size: 11px; color: #475569; font-weight: 600; white-space: nowrap;">TGT: <span style="font-weight: 700; color: #1e293b;">${tgtStr}</span></div>
+					<div style="font-size: 12px; font-weight: 800; color: #0f172a; margin-top: 2px; white-space: nowrap;">ACH: ${achStr} <span style="font-size: 11px; font-weight: 700; color: #0d9488;">(${pctStr})</span></div>
 					${gapHtml}
 				</td>
 			`;
@@ -13069,8 +13069,8 @@ class DrishtiDashboard {
 						</tr>
 						<tr class="sub-hdr">
 							${ptaProducts.map(p => `
-								<th style="width: 75px; text-align: center; padding: 4px; border-left: 1px solid rgba(255, 255, 255, 0.15);">TGT</th>
-								<th style="width: 85px; text-align: center; padding: 4px;">ACH</th>
+								<th style="width: 85px; min-width: 80px; text-align: center; padding: 4px 6px; border-left: 1px solid rgba(255, 255, 255, 0.15); white-space: nowrap;">TGT</th>
+								<th style="width: 95px; min-width: 90px; text-align: center; padding: 4px 6px; white-space: nowrap;">ACH</th>
 							`).join('')}
 						</tr>
 					</thead>
@@ -13078,21 +13078,21 @@ class DrishtiDashboard {
 						${rowsHtml}
 					</tbody>
 					<tfoot>
-						<tr style="background-color: #264a4d !important; color: #ffffff !important; font-weight: 800; font-size: 13px;">
+						<tr style="background-color: #264a4d !important; color: #ffffff !important; font-weight: 800; font-size: 12px;">
 							<td></td>
 							<td></td>
-							<td style="text-align: left; padding-left: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px;">TOTAL</td>
+							<td style="text-align: left; padding-left: 8px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; white-space: nowrap;">TOTAL</td>
 							${ptaProducts.map(p => {
 								const item = grandProducts[p] || { tgt: 0, ach: 0 };
 								return `
-									<td data-product="${p}" data-type="tgt" style="text-align: right; padding: 6px 10px; border-left: 1px solid rgba(255, 255, 255, 0.2); font-size: 13px; font-weight: 600; color: #ffffff; vertical-align: middle;">${fmtAmt(item.tgt)}</td>
-									<td data-product="${p}" data-type="ach" style="text-align: right; padding: 6px 10px; border-left: 1px solid rgba(255, 255, 255, 0.2); font-size: 13px; font-weight: 600; color: #ffffff; vertical-align: middle;">${fmtAmt(item.ach)}</td>
+									<td data-product="${p}" data-type="tgt" style="text-align: right; padding: 6px 8px; border-left: 1px solid rgba(255, 255, 255, 0.2); font-size: 12px; font-weight: 700; color: #ffffff; vertical-align: middle; white-space: nowrap;">${fmtAmt(item.tgt)}</td>
+									<td data-product="${p}" data-type="ach" style="text-align: right; padding: 6px 8px; border-left: 1px solid rgba(255, 255, 255, 0.2); font-size: 12px; font-weight: 700; color: #ffffff; vertical-align: middle; white-space: nowrap;">${fmtAmt(item.ach)}</td>
 								`;
 							}).join('')}
-							<td data-product="TOTAL" style="text-align: right; padding: 6px 12px; border-left: 2px solid rgba(255, 255, 255, 0.4); vertical-align: middle;">
-								<div style="font-size: 11px; color: #cbd5e1; font-weight: 600;">TGT: <span style="font-weight: 800; color: #ffffff;">${fmtAmt(grandTgt)}</span></div>
-								<div style="font-size: 13px; font-weight: 800; color: #ffffff; margin-top: 2px;">ACH: ${fmtAmt(grandAch)} <span style="font-size: 11px; font-weight: 700; color: #5eead4;">(${fmtPct(grandTgt, grandAch)})</span></div>
-								<div style="font-size: 10px; color: ${grandGapRaw > 0 ? '#fca5a5' : '#6ee7b7'}; font-weight: 700; margin-top: 2px;">Gap: ${fmtGap(grandTgt, grandAch)} (${fmtGapPct(grandTgt, grandAch)})</div>
+							<td data-product="TOTAL" style="text-align: right; padding: 6px 10px; border-left: 2px solid rgba(255, 255, 255, 0.4); vertical-align: middle; white-space: nowrap;">
+								<div style="font-size: 11px; color: #cbd5e1; font-weight: 600; white-space: nowrap;">TGT: <span style="font-weight: 800; color: #ffffff;">${fmtAmt(grandTgt)}</span></div>
+								<div style="font-size: 12px; font-weight: 800; color: #ffffff; margin-top: 2px; white-space: nowrap;">ACH: ${fmtAmt(grandAch)} <span style="font-size: 11px; font-weight: 700; color: #5eead4;">(${fmtPct(grandTgt, grandAch)})</span></div>
+								<div style="font-size: 10px; color: ${grandGapRaw > 0 ? '#fca5a5' : '#6ee7b7'}; font-weight: 700; margin-top: 2px; white-space: nowrap;">Gap: ${fmtGap(grandTgt, grandAch)} (${fmtGapPct(grandTgt, grandAch)})</div>
 							</td>
 						</tr>
 					</tfoot>
