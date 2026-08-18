@@ -12892,8 +12892,8 @@ class DrishtiDashboard {
 		};
 
 		const fmtPct = (tgt, ach) => {
-			if (!tgt || tgt <= 0) return "0.00%";
-			return ((ach / tgt) * 100).toFixed(2) + "%";
+			if (!tgt || tgt <= 0) return "0%";
+			return Math.round((ach / tgt) * 100) + "%";
 		};
 
 		const fmtGap = (tgt, ach) => {
@@ -12902,9 +12902,9 @@ class DrishtiDashboard {
 		};
 
 		const fmtGapPct = (tgt, ach) => {
-			if (!tgt || tgt <= 0) return "0.00%";
+			if (!tgt || tgt <= 0) return "0%";
 			const gap = tgt - ach;
-			return ((gap / tgt) * 100).toFixed(2) + "%";
+			return Math.round((gap / tgt) * 100) + "%";
 		};
 
 		if (!self.state.expandedPtaZones) self.state.expandedPtaZones = {};
