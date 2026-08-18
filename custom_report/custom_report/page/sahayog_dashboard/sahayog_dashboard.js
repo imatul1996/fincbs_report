@@ -13045,6 +13045,7 @@ class DrishtiDashboard {
 		return `
 			<style>
 				#product-tgt-ach-table { width: 100%; border-collapse: separate; border-spacing: 0; font-family: 'Inter', sans-serif; }
+				#product-tgt-ach-table th, #product-tgt-ach-table td { white-space: nowrap !important; }
 				#product-tgt-ach-table thead { position: sticky; top: 0; z-index: 20; }
 				#product-tgt-ach-table thead tr.main-hdr { background: linear-gradient(180deg, #417d81 0%, #346569 100%) !important; color: #ffffff !important; }
 				#product-tgt-ach-table thead tr.sub-hdr { background-color: #315e61 !important; color: #ffffff !important; font-size: 11px; font-weight: 700; }
