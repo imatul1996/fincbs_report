@@ -6089,7 +6089,6 @@ class DrishtiDashboard {
 				<thead>
 					<tr style="background: linear-gradient(180deg, #417d81 0%, #346569 100%); color: #ffffff;">
 						<th rowspan="2" style="width: 40px; text-align: center; vertical-align: middle;"><div class="mis-skeleton-pulse" style="width: 14px; height: 14px; margin: auto;"></div></th>
-						<th rowspan="2" style="width: 40px; text-align: center; vertical-align: middle;">Sr</th>
 						<th rowspan="2" style="width: 80px; text-align: center; vertical-align: middle;">Level</th>
 						<th rowspan="2" style="min-width: 200px; text-align: left; padding-left: 12px; vertical-align: middle;">Z / R / D / SOL</th>
 						${products.map(p => `<th colspan="2" style="text-align: center; border-left: 1px solid rgba(255,255,255,0.2); font-weight: 800; padding: 8px;">${p}</th>`).join('')}
@@ -6107,7 +6106,6 @@ class DrishtiDashboard {
 			rowsHtml = [1,2,3,4,5,6,7,8].map(i => `
 				<tr style="background: ${i%2===0 ? '#f8fafc' : '#fff'};">
 					<td><div class="mis-skeleton-pulse" style="width: 14px; height: 14px; margin: auto;"></div></td>
-					<td><div class="mis-skeleton-pulse" style="width: 20px; margin: auto;"></div></td>
 					<td><div class="mis-skeleton-pulse" style="width: 50px; margin: auto;"></div></td>
 					<td><div class="mis-skeleton-pulse" style="width: ${120 + Math.random()*60}px;"></div></td>
 					${products.map(() => `
@@ -12963,18 +12961,15 @@ class DrishtiDashboard {
 			`;
 		};
 
-		let sr = 0;
 		let rowsHtml = "";
 
 		Object.keys(zones).sort().forEach(zoneName => {
 			const zObj = zones[zoneName];
-			sr++;
 			const zoneExpanded = !!self.state.expandedPtaZones[zoneName];
 
 			rowsHtml += `
 				<tr class="pta-zone-row" data-zone="${zoneName}" style="cursor: pointer; background: #ffffff; font-weight: bold; border-bottom: 1px solid #cbd5e1;">
 					<td style="text-align: center; width: 35px; vertical-align: middle;"><input type="checkbox" class="pta-row-checkbox" style="cursor: pointer; transform: scale(1.1);"></td>
-					<td style="text-align: center; width: 35px; vertical-align: middle; font-size: 11px;">${sr}</td>
 					<td style="text-align: center; width: 60px; vertical-align: middle;"><span style="background: #64748b; color: white; padding: 1px 6px; border-radius: 4px; font-size: 10px; font-weight: 600;">Zone</span></td>
 					<td class="pta-name-cell" style="text-align: left; padding-left: 6px; max-width: 140px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; vertical-align: middle;" title="${zoneName}">
 						<span class="pta-toggle" style="margin-right: 4px; font-size: 10px; color: #475569;">${zoneExpanded ? "▼" : "▶"}</span>
@@ -12994,7 +12989,6 @@ class DrishtiDashboard {
 				rowsHtml += `
 					<tr class="pta-region-row" data-key="${regKey}" style="display: ${showRegion ? 'table-row' : 'none'}; cursor: pointer; background: #f8fafc; font-weight: 600; border-bottom: 1px solid #cbd5e1; border-left: 4px solid #417d81;">
 						<td style="text-align: center; vertical-align: middle;"><input type="checkbox" class="pta-row-checkbox" style="cursor: pointer; transform: scale(1.1);"></td>
-						<td></td>
 						<td style="text-align: center; vertical-align: middle;"><span style="background: #0d9488; color: white; padding: 1px 6px; border-radius: 4px; font-size: 10px; font-weight: 600;">Region</span></td>
 						<td class="pta-name-cell" style="text-align: left; padding-left: 14px; max-width: 140px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; color: #334155; font-size: 12px; vertical-align: middle;" title="${regName}">
 							<span class="pta-toggle" style="margin-right: 4px; font-size: 10px; color: #64748b;">${regExpanded ? "▼" : "▶"}</span>
@@ -13014,7 +13008,6 @@ class DrishtiDashboard {
 					rowsHtml += `
 						<tr class="pta-district-row" data-key="${distKey}" style="display: ${showDist ? 'table-row' : 'none'}; cursor: pointer; background: #fafaf9; font-weight: 600; border-bottom: 1px solid #e7e5e4; border-left: 6px solid #64748b;">
 							<td style="text-align: center; vertical-align: middle;"><input type="checkbox" class="pta-row-checkbox" style="cursor: pointer; transform: scale(1.1);"></td>
-							<td></td>
 							<td style="text-align: center; vertical-align: middle;"><span style="background: #d97706; color: white; padding: 1px 6px; border-radius: 4px; font-size: 10px; font-weight: 600;">District</span></td>
 							<td class="pta-name-cell" style="text-align: left; padding-left: 22px; max-width: 140px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; color: #44403c; font-size: 12px; vertical-align: middle;" title="${distName}">
 								<span class="pta-toggle" style="margin-right: 4px; font-size: 10px; color: #78716c;">${distExpanded ? "▼" : "▶"}</span>
@@ -13034,7 +13027,6 @@ class DrishtiDashboard {
 						rowsHtml += `
 							<tr class="pta-sol-row" data-key="${solKey}" style="display: ${showSol ? 'table-row' : 'none'}; background: #ffffff; border-bottom: 1px solid #e2e8f0; border-left: 8px solid #cbd5e1;">
 								<td style="text-align: center; vertical-align: middle;"><input type="checkbox" class="pta-row-checkbox" style="cursor: pointer; transform: scale(1.1);"></td>
-								<td></td>
 								<td style="text-align: center; vertical-align: middle;"><span style="background: #4f46e5; color: white; padding: 1px 6px; border-radius: 4px; font-size: 10px; font-weight: 600;">SOL</span></td>
 								<td class="pta-name-cell" style="text-align: left; padding-left: 30px; max-width: 140px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; color: #475569; font-weight: 500; font-size: 11px; vertical-align: middle;" title="${solLabel}">
 									${solLabel}
@@ -13070,7 +13062,6 @@ class DrishtiDashboard {
 					<thead>
 						<tr class="main-hdr">
 							<th rowspan="2" style="width: 35px; text-align: center; vertical-align: middle;"><input type="checkbox" class="pta-select-all" style="cursor: pointer; transform: scale(1.1);" title="Select All"></th>
-							<th rowspan="2" style="width: 35px; text-align: center; vertical-align: middle; font-weight: 700; font-size: 11px;">Sr</th>
 							<th rowspan="2" style="width: 60px; text-align: center; vertical-align: middle; font-weight: 700; font-size: 11px;">Level</th>
 							<th rowspan="2" style="width: 140px; min-width: 130px; max-width: 150px; text-align: left; padding-left: 8px; vertical-align: middle; font-weight: 700;">Z / R / D / SOL</th>
 							${ptaProducts.map(p => `<th data-product="${p}" colspan="2" style="text-align: center; border-left: 1px solid rgba(255, 255, 255, 0.2); font-weight: 800; font-size: 13px; padding: 6px 4px;">${p}</th>`).join('')}
@@ -13090,16 +13081,15 @@ class DrishtiDashboard {
 						<tr style="background-color: #264a4d !important; color: #ffffff !important; font-weight: 800; font-size: 13px;">
 							<td></td>
 							<td></td>
-							<td></td>
 							<td style="text-align: left; padding-left: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px;">TOTAL</td>
 							${ptaProducts.map(p => {
 								const item = grandProducts[p] || { tgt: 0, ach: 0 };
 								return `
-									<td style="text-align: right; padding: 6px 10px; border-left: 1px solid rgba(255, 255, 255, 0.2); font-size: 13px; font-weight: 600; color: #ffffff; vertical-align: middle;">${fmtAmt(item.tgt)}</td>
-									<td style="text-align: right; padding: 6px 10px; font-size: 13px; font-weight: 600; color: #ffffff; vertical-align: middle;">${fmtAmt(item.ach)}</td>
+									<td data-product="${p}" data-type="tgt" style="text-align: right; padding: 6px 10px; border-left: 1px solid rgba(255, 255, 255, 0.2); font-size: 13px; font-weight: 600; color: #ffffff; vertical-align: middle;">${fmtAmt(item.tgt)}</td>
+									<td data-product="${p}" data-type="ach" style="text-align: right; padding: 6px 10px; border-left: 1px solid rgba(255, 255, 255, 0.2); font-size: 13px; font-weight: 600; color: #ffffff; vertical-align: middle;">${fmtAmt(item.ach)}</td>
 								`;
 							}).join('')}
-							<td style="text-align: right; padding: 6px 12px; border-left: 2px solid rgba(255, 255, 255, 0.4); vertical-align: middle;">
+							<td data-product="TOTAL" style="text-align: right; padding: 6px 12px; border-left: 2px solid rgba(255, 255, 255, 0.4); vertical-align: middle;">
 								<div style="font-size: 11px; color: #cbd5e1; font-weight: 600;">TGT: <span style="font-weight: 800; color: #ffffff;">${fmtAmt(grandTgt)}</span></div>
 								<div style="font-size: 13px; font-weight: 800; color: #ffffff; margin-top: 2px;">ACH: ${fmtAmt(grandAch)} <span style="font-size: 11px; font-weight: 700; color: #5eead4;">(${fmtPct(grandTgt, grandAch)})</span></div>
 								<div style="font-size: 10px; color: ${grandGapRaw > 0 ? '#fca5a5' : '#6ee7b7'}; font-weight: 700; margin-top: 2px;">Gap: ${fmtGap(grandTgt, grandAch)} (${fmtGapPct(grandTgt, grandAch)})</div>
