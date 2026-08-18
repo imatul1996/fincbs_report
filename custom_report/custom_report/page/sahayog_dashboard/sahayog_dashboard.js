@@ -12930,8 +12930,10 @@ class DrishtiDashboard {
 				}
 
 				return `
-					<td data-product="${p}" data-type="tgt" style="text-align: right; padding: 6px 8px; border-left: 1px solid #cbd5e1; font-size: 12px; font-weight: 600; color: #1e293b; vertical-align: middle; white-space: nowrap;">${tgtStr}</td>
-					<td data-product="${p}" data-type="ach" style="text-align: right; padding: 6px 8px; font-size: 12px; font-weight: 600; color: #1e293b; vertical-align: middle; white-space: nowrap;">
+					<td data-product="${p}" data-type="tgt" style="text-align: right; padding: 8px 8px; border-left: 1px solid #cbd5e1; font-size: 12px; font-weight: 600; color: #1e293b; vertical-align: top; white-space: nowrap;">
+						<div style="white-space: nowrap;">${tgtStr}</div>
+					</td>
+					<td data-product="${p}" data-type="ach" style="text-align: right; padding: 8px 8px; font-size: 12px; font-weight: 600; color: #1e293b; vertical-align: top; white-space: nowrap;">
 						<div style="white-space: nowrap;">${achStr}</div>
 						${achSubText}
 					</td>
@@ -12953,7 +12955,7 @@ class DrishtiDashboard {
 			}
 
 			return `
-				<td data-product="TOTAL" style="text-align: right; padding: 6px 10px; border-left: 2px solid #73a8aa; vertical-align: middle; min-width: 150px; background: rgba(65,125,129,0.03); white-space: nowrap;">
+				<td data-product="TOTAL" style="text-align: right; padding: 8px 10px; border-left: 2px solid #73a8aa; vertical-align: top; min-width: 150px; background: rgba(65,125,129,0.03); white-space: nowrap;">
 					<div style="font-size: 11px; color: #475569; font-weight: 600; white-space: nowrap;">TGT: <span style="font-weight: 700; color: #1e293b;">${tgtStr}</span></div>
 					<div style="font-size: 12px; font-weight: 800; color: #0f172a; margin-top: 2px; white-space: nowrap;">ACH: ${achStr} <span style="font-size: 11px; font-weight: 700; color: #0d9488;">(${pctStr})</span></div>
 					${gapHtml}
@@ -13085,12 +13087,16 @@ class DrishtiDashboard {
 							<td style="text-align: left; padding-left: 8px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; white-space: nowrap;">TOTAL</td>
 							${ptaProducts.map(p => {
 								const item = grandProducts[p] || { tgt: 0, ach: 0 };
+								const pctStr = fmtPct(item.tgt, item.ach);
 								return `
-									<td data-product="${p}" data-type="tgt" style="text-align: right; padding: 6px 8px; border-left: 1px solid rgba(255, 255, 255, 0.2); font-size: 12px; font-weight: 700; color: #ffffff; vertical-align: middle; white-space: nowrap;">${fmtAmt(item.tgt)}</td>
-									<td data-product="${p}" data-type="ach" style="text-align: right; padding: 6px 8px; border-left: 1px solid rgba(255, 255, 255, 0.2); font-size: 12px; font-weight: 700; color: #ffffff; vertical-align: middle; white-space: nowrap;">${fmtAmt(item.ach)}</td>
+									<td data-product="${p}" data-type="tgt" style="text-align: right; padding: 8px 8px; border-left: 1px solid rgba(255, 255, 255, 0.2); font-size: 12px; font-weight: 700; color: #ffffff; vertical-align: top; white-space: nowrap;">${fmtAmt(item.tgt)}</td>
+									<td data-product="${p}" data-type="ach" style="text-align: right; padding: 8px 8px; border-left: 1px solid rgba(255, 255, 255, 0.2); font-size: 12px; font-weight: 700; color: #ffffff; vertical-align: top; white-space: nowrap;">
+										<div style="white-space: nowrap;">${fmtAmt(item.ach)}</div>
+										<div style="font-size: 10px; color: #5eead4; font-weight: 600; margin-top: 2px; white-space: nowrap;">${pctStr}</div>
+									</td>
 								`;
 							}).join('')}
-							<td data-product="TOTAL" style="text-align: right; padding: 6px 10px; border-left: 2px solid rgba(255, 255, 255, 0.4); vertical-align: middle; white-space: nowrap;">
+							<td data-product="TOTAL" style="text-align: right; padding: 8px 10px; border-left: 2px solid rgba(255, 255, 255, 0.4); vertical-align: top; white-space: nowrap;">
 								<div style="font-size: 11px; color: #cbd5e1; font-weight: 600; white-space: nowrap;">TGT: <span style="font-weight: 800; color: #ffffff;">${fmtAmt(grandTgt)}</span></div>
 								<div style="font-size: 12px; font-weight: 800; color: #ffffff; margin-top: 2px; white-space: nowrap;">ACH: ${fmtAmt(grandAch)} <span style="font-size: 11px; font-weight: 700; color: #5eead4;">(${fmtPct(grandTgt, grandAch)})</span></div>
 								<div style="font-size: 10px; color: ${grandGapRaw > 0 ? '#fca5a5' : '#6ee7b7'}; font-weight: 700; margin-top: 2px; white-space: nowrap;">Gap: ${fmtGap(grandTgt, grandAch)} (${fmtGapPct(grandTgt, grandAch)})</div>
