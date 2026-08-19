@@ -4527,17 +4527,24 @@ class DrishtiDashboard {
 						return;
 					}
 
-					frappe.db.get_value("Employee", { user_id: frappe.session.user }, "cxo_level")
-						.then(r => {
+					frappe.call({
+						method: "frappe.client.get_value",
+						args: {
+							doctype: "Employee",
+							filters: { user_id: frappe.session.user },
+							fieldname: "cxo_level"
+						},
+						callback: function (r) {
 							const cxo = r && r.message ? (r.message.cxo_level !== undefined ? r.message.cxo_level : r.message) : 0;
 							dashboardInstance.canViewCommission = (cint(cxo) === 1);
 							callback(dashboardInstance.canViewCommission);
-						})
-						.catch(err => {
+						},
+						error: function (err) {
 							console.error("Error checking employee cxo_level:", err);
 							dashboardInstance.canViewCommission = false;
 							callback(false);
-						});
+						}
+					});
 				},
 				renderMisTable: function (tableContainer, dashboardInstance) {
 					const self = this;
@@ -4897,17 +4904,24 @@ class DrishtiDashboard {
 						return;
 					}
 
-					frappe.db.get_value("Employee", { user_id: frappe.session.user }, "cxo_level")
-						.then(r => {
+					frappe.call({
+						method: "frappe.client.get_value",
+						args: {
+							doctype: "Employee",
+							filters: { user_id: frappe.session.user },
+							fieldname: "cxo_level"
+						},
+						callback: function (r) {
 							const cxo = r && r.message ? (r.message.cxo_level !== undefined ? r.message.cxo_level : r.message) : 0;
 							dashboardInstance.canViewCommission = (cint(cxo) === 1);
 							callback(dashboardInstance.canViewCommission);
-						})
-						.catch(err => {
+						},
+						error: function (err) {
 							console.error("Error checking employee cxo_level:", err);
 							dashboardInstance.canViewCommission = false;
 							callback(false);
-						});
+						}
+					});
 				},
 				rmDetails: {},
 				expandedRms: {},
@@ -5935,8 +5949,14 @@ class DrishtiDashboard {
 
 	checkUserDesignation() {
 		const currentUser = frappe.session.user;
-		frappe.db.get_value("Employee", { user_id: currentUser }, ["name", "employee_name", "designation"])
-			.then(r => {
+		frappe.call({
+			method: "frappe.client.get_value",
+			args: {
+				doctype: "Employee",
+				filters: { user_id: currentUser },
+				fieldname: ["name", "employee_name", "designation"]
+			},
+			callback: (r) => {
 				const emp = r && r.message ? r.message : null;
 				const designation = emp ? (emp.designation || "") : "";
 				const isBranchManager = designation.toLowerCase().includes("branch manager");
@@ -5949,10 +5969,11 @@ class DrishtiDashboard {
 				if (isBranchManager) {
 					this.applyBranchManagerRestrictions();
 				}
-			})
-			.catch(err => {
+			},
+			error: (err) => {
 				console.error("[Sahayog Dashboard] Error checking employee designation:", err);
-			});
+			}
+		});
 	}
 
 	applyBranchManagerRestrictions() {
@@ -8235,7 +8256,7 @@ class DrishtiDashboard {
                     <button class="tab-btn" data-tab="branch">
                         Branch Wise
                     </button>
-                    <button class="tab-btn" data-tab="product_tgt_ach">
+                    <button class="tab-btn" data-tab="product_tgt_ach" style="display: none !important;">
                         Product Wise TGT VS ACH
                     </button>
 
