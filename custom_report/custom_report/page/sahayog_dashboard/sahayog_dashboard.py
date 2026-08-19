@@ -5876,8 +5876,10 @@ def get_new_account_report_data(selected_date=None):
 def get_maturity_tracker_data(selected_date=None):
     import datetime
     from frappe.utils import cint
+
+    t1_date = str(datetime.date.today() - datetime.timedelta(days=1))
     if not selected_date:
-        selected_date = str(datetime.date.today())
+        selected_date = t1_date
 
     user = frappe.session.user
     is_cxo = False
@@ -5897,6 +5899,22 @@ def get_maturity_tracker_data(selected_date=None):
             "total_deposit_amount", "deposit_done_flag", "renewal_amount"
         ]
     )
+
+    if not records:
+        recent_date = frappe.db.get_value("Maturity Tracker", {"date": ["<=", selected_date]}, "date", order_by="date desc")
+        if not recent_date:
+            recent_date = frappe.db.get_value("Maturity Tracker", {}, "date", order_by="date desc")
+
+        if recent_date and str(recent_date) != str(selected_date):
+            records = frappe.db.get_all(
+                "Maturity Tracker",
+                filters={"date": str(recent_date)},
+                fields=[
+                    "date", "cif_id", "acct_name", "sol_ids", "account_numbers",
+                    "account_count", "maturity_paid", "last_debit_transaction_date",
+                    "total_deposit_amount", "deposit_done_flag", "renewal_amount"
+                ]
+            )
 
     if not records:
         return []
