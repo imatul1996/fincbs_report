@@ -37,8 +37,9 @@ def sahayog_cache(ttl=86400):
                 pos_params = [p for p in sig.parameters.values() if p.kind in (inspect.Parameter.POSITIONAL_ONLY, inspect.Parameter.POSITIONAL_OR_KEYWORD)]
                 filtered_args = args[:len(pos_params)]
 
-            # Generate deterministic cache key based on function name and filtered arguments
-            args_str = f"{filtered_args}_{json.dumps(filtered_kwargs, sort_keys=True, default=str)}"
+            user = getattr(frappe.session, "user", "Guest")
+            # Generate deterministic cache key based on user, function name and filtered arguments
+            args_str = f"{user}_{filtered_args}_{json.dumps(filtered_kwargs, sort_keys=True, default=str)}"
             key_hash = hashlib.md5(args_str.encode('utf-8')).hexdigest()
             cache_key = f"sahayog_cache|{func.__name__}|{key_hash}"
             
@@ -528,6 +529,7 @@ def get_available_financial_years():
 
 
 @frappe.whitelist(allow_guest=True)
+@sahayog_cache(ttl=86400)
 def get_sahayog_dashboard(
     financial_year=None,
     view="Monthly",
@@ -918,7 +920,8 @@ def build_product_wise(branch_data, targets_map, target_type, selected_date=None
                 "total_amount": 0.0
             }
         hierarchy[z][r][d][s]["products"][prod] += amt
-        hierarchy[z][r][d][s]["total_amount"] += amt
+        if prod not in ("SHARE", "TDA"):
+            hierarchy[z][r][d][s]["total_amount"] += amt
 
     result = []
     for zone in sorted(hierarchy.keys()):
@@ -5876,8 +5879,10 @@ def get_new_account_report_data(selected_date=None):
 def get_maturity_tracker_data(selected_date=None):
     import datetime
     from frappe.utils import cint
+
+    t1_date = str(datetime.date.today() - datetime.timedelta(days=1))
     if not selected_date:
-        selected_date = str(datetime.date.today())
+        selected_date = t1_date
 
     user = frappe.session.user
     is_cxo = False
@@ -5897,6 +5902,22 @@ def get_maturity_tracker_data(selected_date=None):
             "total_deposit_amount", "deposit_done_flag", "renewal_amount"
         ]
     )
+
+    if not records:
+        recent_date = frappe.db.get_value("Maturity Tracker", {"date": ["<=", selected_date]}, "date", order_by="date desc")
+        if not recent_date:
+            recent_date = frappe.db.get_value("Maturity Tracker", {}, "date", order_by="date desc")
+
+        if recent_date and str(recent_date) != str(selected_date):
+            records = frappe.db.get_all(
+                "Maturity Tracker",
+                filters={"date": str(recent_date)},
+                fields=[
+                    "date", "cif_id", "acct_name", "sol_ids", "account_numbers",
+                    "account_count", "maturity_paid", "last_debit_transaction_date",
+                    "total_deposit_amount", "deposit_done_flag", "renewal_amount"
+                ]
+            )
 
     if not records:
         return []
