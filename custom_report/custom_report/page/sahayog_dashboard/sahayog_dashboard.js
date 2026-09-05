@@ -9761,15 +9761,45 @@ class DrishtiDashboard {
 			});
 		}
 
-		// 2. Zone filter
-		if (this.state.selectedZones.length > 0) {
+		// 2+4. Zone + District combined filter (OR logic when both selected)
+		const hasZones = this.state.selectedZones.length > 0;
+		const hasDistricts = this.state.selectedDistricts && this.state.selectedDistricts.length > 0;
+
+		if (hasZones && hasDistricts) {
+			// OR: show branches matching zone OR district
 			filtered = filtered.filter((branch) =>
 				this.state.selectedZones.some(
 					(zone) =>
 						this.getLocationIdentifier(zone) ===
 						this.getLocationIdentifier(branch.zone),
+				) ||
+				this.state.selectedDistricts.some(
+					(district) =>
+						this.getLocationIdentifier(district) ===
+						this.getLocationIdentifier(branch.district),
 				),
 			);
+		} else {
+			// Zone filter only
+			if (hasZones) {
+				filtered = filtered.filter((branch) =>
+					this.state.selectedZones.some(
+						(zone) =>
+							this.getLocationIdentifier(zone) ===
+							this.getLocationIdentifier(branch.zone),
+					),
+				);
+			}
+			// District filter only
+			if (hasDistricts) {
+				filtered = filtered.filter((branch) =>
+					this.state.selectedDistricts.some(
+						(district) =>
+							this.getLocationIdentifier(district) ===
+							this.getLocationIdentifier(branch.district),
+					),
+				);
+			}
 		}
 
 		// 3. Region filter
@@ -9779,17 +9809,6 @@ class DrishtiDashboard {
 					(region) =>
 						this.getLocationIdentifier(region) ===
 						this.getLocationIdentifier(branch.region),
-				),
-			);
-		}
-
-		// 4. District filter
-		if (this.state.selectedDistricts && this.state.selectedDistricts.length > 0) {
-			filtered = filtered.filter((branch) =>
-				this.state.selectedDistricts.some(
-					(district) =>
-						this.getLocationIdentifier(district) ===
-						this.getLocationIdentifier(branch.district),
 				),
 			);
 		}
@@ -9818,31 +9837,61 @@ class DrishtiDashboard {
 	getFilteredProductData() {
 		let base = this.productData;
 
-		// District filter (multi-select)
-		if (this.state.selectedDistricts && this.state.selectedDistricts.length > 0) {
-			const selectedNames = new Set(
-				this.state.selectedDistricts.map((d) => d.toLowerCase().trim()),
-			);
+		const hasZones = this.state.selectedZones && this.state.selectedZones.length > 0;
+		const hasDistricts = this.state.selectedDistricts && this.state.selectedDistricts.length > 0;
 
-			const matchingDistrictPaths = new Set();
-			const matchingRegionPaths = new Set();
+		if (hasZones || hasDistricts) {
 			const matchingZonePaths = new Set();
+			const matchingRegionPaths = new Set();
+			const matchingDistrictPaths = new Set();
 
-			this.productData.forEach((item) => {
-				if (item.type === "district" && selectedNames.has(item.name.toLowerCase().trim())) {
-					matchingDistrictPaths.add(item.path);
-					matchingRegionPaths.add(item.parent_region);
-					matchingZonePaths.add(item.parent_zone);
-				}
-			});
+			// Zone filter: collect paths for selected zones
+			if (hasZones) {
+				const selectedZoneNames = new Set(
+					this.state.selectedZones.map((z) => z.toLowerCase().trim()),
+				);
+				this.productData.forEach((item) => {
+					if (item.type === "zone" && selectedZoneNames.has(item.name.toLowerCase().trim())) {
+						matchingZonePaths.add(item.path);
+					}
+				});
+				// Include child regions/districts/sols of matching zones
+				this.productData.forEach((item) => {
+					if (item.type === "region" && matchingZonePaths.has(item.parent_zone)) {
+						matchingRegionPaths.add(item.path);
+					}
+					if (item.type === "district" && matchingRegionPaths.has(item.parent_region)) {
+						matchingDistrictPaths.add(item.path);
+					}
+					if (item.type === "sol" && matchingDistrictPaths.has(item.parent_district)) {
+						// sol is under a matched zone
+					}
+				});
+			}
 
-			if (matchingZonePaths.size === 0) return [];
+			// District filter: collect paths for selected districts
+			if (hasDistricts) {
+				const selectedNames = new Set(
+					this.state.selectedDistricts.map((d) => d.toLowerCase().trim()),
+				);
+				this.productData.forEach((item) => {
+					if (item.type === "district" && selectedNames.has(item.name.toLowerCase().trim())) {
+						matchingDistrictPaths.add(item.path);
+						matchingRegionPaths.add(item.parent_region);
+						matchingZonePaths.add(item.parent_zone);
+					}
+				});
+			}
 
+			// OR logic: show items matching zone OR district
 			base = this.productData.filter((item) => {
 				if (item.type === "zone") return matchingZonePaths.has(item.path);
 				if (item.type === "region") return matchingRegionPaths.has(item.path);
 				if (item.type === "district") return matchingDistrictPaths.has(item.path);
-				if (item.type === "sol") return matchingDistrictPaths.has(item.parent_district);
+				if (item.type === "sol") {
+					return matchingDistrictPaths.has(item.parent_district) ||
+						matchingZonePaths.has(item.parent_zone);
+				}
 				return true;
 			});
 		}
