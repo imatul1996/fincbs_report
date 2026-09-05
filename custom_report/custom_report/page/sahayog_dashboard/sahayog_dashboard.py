@@ -296,16 +296,8 @@ def get_user_report_permissions(user):
     if not pref_name:
         if "System Manager" in frappe.get_roles(user):
             return permissions
-        # Fallback to Employee sahayog_branch if assigned
-        if employee and employee.get("sahayog_branch"):
-            emp_sol = str(employee["sahayog_branch"]).strip()
-            branches_map = get_sahayog_branches_cached()
-            branch_name = branches_map.get(emp_sol, {}).get("branch_name") or f"Branch {emp_sol}"
-            permissions["is_restricted"] = True
-            permissions["sol_ids"] = [emp_sol]
-            permissions["sol_data"] = [{"sol_id": emp_sol, "branch_name": branch_name}]
-            permissions["has_access"] = True
-            return permissions
+        # Non-BM with no Report Preference → no data (has_access False)
+        # BM fallback already handled above (is_branch_manager), so deny here
         permissions["has_access"] = False
         return permissions
 
@@ -855,10 +847,10 @@ def get_sahayog_dashboard(
     
     eff_selected_date = months[-1][3] if months else selected_date
     zone_wise = build_zone_wise(all_branch_data, targets_map, target_type, district_map)
-    product_wise_result, all_products = build_product_wise(all_branch_data, targets_map, target_type, eff_selected_date)
+    product_wise_result, all_products = build_product_wise(all_branch_data, targets_map, target_type, eff_selected_date, combined_filters)
     category_wise = build_category_wise(all_branch_data, targets_map, months, target_type)
     branch_wise = build_branch_wise(all_branch_data, targets_map, months, target_type, district_map)
-    agent_wise = build_agent_wise(eff_selected_date)
+    agent_wise = build_agent_wise(eff_selected_date, perms)
 
     return {
         "financial_year": financial_year,
@@ -1108,7 +1100,7 @@ def build_product_wise(branch_data, targets_map, target_type, selected_date=None
             product,
             SUM(amount) as amount
         FROM `tabProduct Wise Report`
-        WHERE date = %s AND product NOT IN ('SHARE', 'TDA', 'JLL RD', 'SKBG', 'TASKSILVER', 'TASKWEALTH', 'SAVSIL', 'CUGOLD', 'CUWEALTH')
+        WHERE {where_clause} AND product NOT IN ('SHARE', 'TDA', 'JLL RD', 'SKBG', 'TASKSILVER', 'TASKWEALTH', 'SAVSIL', 'CUGOLD', 'CUWEALTH')
         GROUP BY zone, region, sol_id, product
     """, params, as_dict=True)
 
@@ -1447,23 +1439,54 @@ def build_agent_wise(selected_date=None, perms=None):
         allowed_regions = set()
         
         # Use explicit zones/regions from Report Preference directly
-        # Do NOT resolve sol_ids here — they may map to different zones/regions
-        # than what the user has explicitly set in Report Preference
         if perms.get("zones"):
             allowed_zones.update(perms["zones"])
         
         if not perms.get("all_regions") and perms.get("regions"):
             allowed_regions.update(perms["regions"])
         
+        # Derive zones from sol_ids BEFORE building WHERE clause (Agent Wise has no sol_id column)
+        if perms.get("sol_ids") and not allowed_zones:
+            try:
+                branches_map = get_sahayog_branches_cached()
+                for sol in perms["sol_ids"]:
+                    z = branches_map.get(str(sol), {}).get("zone")
+                    if z:
+                        allowed_zones.add(z)
+            except Exception:
+                pass
+        
+        import re
+        
         if allowed_zones:
-            placeholders = ", ".join(["%s"] * len(allowed_zones))
-            where_clauses.append(f"zone IN ({placeholders})")
-            params.extend(list(allowed_zones))
+            zone_ids = [re.sub(r"\D", "", z) for z in allowed_zones if re.sub(r"\D", "", z)]
+            if zone_ids:
+                if len(zone_ids) == 1:
+                    where_clauses.append("zone LIKE %s")
+                    params.append(f"%{zone_ids[0]}%")
+                else:
+                    pattern = "(" + "|".join(re.escape(zid) for zid in zone_ids) + ")"
+                    where_clauses.append("zone REGEXP %s")
+                    params.append(pattern)
+            else:
+                placeholders = ", ".join(["%s"] * len(allowed_zones))
+                where_clauses.append(f"zone IN ({placeholders})")
+                params.extend(list(allowed_zones))
         
         if allowed_regions:
-            placeholders = ", ".join(["%s"] * len(allowed_regions))
-            where_clauses.append(f"region IN ({placeholders})")
-            params.extend(list(allowed_regions))
+            region_ids = [re.sub(r"\D", "", r) for r in allowed_regions if re.sub(r"\D", "", r)]
+            if region_ids:
+                if len(region_ids) == 1:
+                    where_clauses.append("region LIKE %s")
+                    params.append(f"%{region_ids[0]}%")
+                else:
+                    pattern = "(" + "|".join(re.escape(rid) for rid in region_ids) + ")"
+                    where_clauses.append("region REGEXP %s")
+                    params.append(pattern)
+            else:
+                placeholders = ", ".join(["%s"] * len(allowed_regions))
+                where_clauses.append(f"region IN ({placeholders})")
+                params.extend(list(allowed_regions))
     
     where_sql = " AND ".join(where_clauses)
     
@@ -1676,7 +1699,7 @@ def get_mis_filter_options():
             zone_norms = {norm_loc(z) for z in allowed_zones if z} if has_zones else set()
             reg_norms = {norm_loc(r) for r in allowed_regions if r} if has_regions else set()
             dist_norms = {norm_loc(d) for d in allowed_districts if d} if has_districts else set()
-            sol_norms = {norm_sol(s) for s in allowed_sols if s} if has_sols else set()
+            sol_norms = {norm_sol(s) for s in allowed_sol_ids if s} if has_sols else set()
 
             matching_branches = []
             for b in branches_map.values():
