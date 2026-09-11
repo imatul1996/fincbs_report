@@ -2823,6 +2823,7 @@
 		</div>
 
 		<script>
+			window.isBranchManager = {{ 'true' if is_branch_manager else 'false' }};
 			/* =========================================================
 	   BRANCH DASHBOARD (HEADER + SEARCH)
 	   ========================================================= */
@@ -3884,6 +3885,21 @@
 					const sol = params.get("sol_id");
 					if (sol) {
 						this.loadBranch(sol, false);
+					} else if (window.isBranchManager) {
+						// Auto-load branch for BM users based on their employee SOL ID
+						fetch("/api/method/custom_report.www.drishti.get_current_user_employee_status", {
+							method: "POST",
+							headers: { "Content-Type": "application/json", "Accept": "application/json" },
+							body: JSON.stringify({})
+						})
+							.then(r => r.json())
+							.then(data => {
+								const msg = data && data.message;
+								if (msg && msg.sol_id) {
+									this.loadBranch(msg.sol_id, true);
+								}
+							})
+							.catch(() => {});
 					} else {
 						this.toggleBranchDataVisibility(false); // Initial state: no branch selected
 					}

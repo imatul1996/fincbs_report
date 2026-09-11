@@ -477,6 +477,7 @@ def get_bm_details_from_employee(sol_id: str):
             "date_of_joining": str(emp.get("date_of_joining")) if emp.get("date_of_joining") else "",
             "image": emp.get("image") or "",
             "reports_to": emp.get("reports_to") or "",
+            "user_id": emp.get("user_id") or "",
             "reporting_person": reporting_person,
         })
 

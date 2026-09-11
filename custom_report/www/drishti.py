@@ -78,9 +78,9 @@ def get_report_preference():
 
 
 def _employee_status_dict(employee):
-	status, resignation_date, relieving_date = frappe.db.get_value(
-		"Employee", employee, ["status", "resignation_letter_date", "relieving_date"]
-	) or ("Active", None, None)
+	status, resignation_date, relieving_date, sol_id = frappe.db.get_value(
+		"Employee", employee, ["status", "resignation_letter_date", "relieving_date", "sol_id"]
+	) or ("Active", None, None, None)
 
 	# If employee status is Left, hide BM entirely
 	if status == "Left":
@@ -103,6 +103,7 @@ def _employee_status_dict(employee):
 
 	return {
 		"status": final_status,
+		"sol_id": sol_id or None,
 		"resignation_letter_date": str(resignation_date) if resignation_date else None,
 		"relieving_date": str(relieving_date) if relieving_date else None,
 		"relieving_in_days": relieving_in_days if final_status == "Resign" else None,
