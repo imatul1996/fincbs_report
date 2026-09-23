@@ -130,6 +130,7 @@ def download_transactions():
 					g.bacid = %(account_value)s
 				 OR g.foracid = %(account_value)s
 				 OR g.gl_sub_head_code = %(account_value)s
+				 OR g.schm_code = %(account_value)s
 				  )
 			  AND h.tran_date BETWEEN %(start_date)s AND %(end_date)s
 		) v
