@@ -1,4 +1,10 @@
 // ---- Configuration -------------------------------------------------------
+// Added defensive check to prevent crashing when included globally in Desk
+if (!document.getElementById("reportForm")) {
+    console.warn("double_leg_transaction.js: reportForm not found, skipping initialization.");
+} else {
+
+// ---- Configuration -------------------------------------------------------
 const CONFIG = {
 	// Backend endpoint that runs the SQL and returns one batch of CSV rows per call.
 	endpoint: "/api/method/custom_report.www.double_leg_transaction.download_transactions",
@@ -425,4 +431,7 @@ if (dbToggle) {
 			}
 		}
 	});
+}
+
+
 }

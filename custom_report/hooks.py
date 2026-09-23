@@ -29,8 +29,7 @@ app_license = "mit"
 # app_include_js = "/assets/custom_report/js/custom_report.js"
 
 app_include_js = [
-    "/assets/custom_report/js/petite-vue.js",
-    "/assets/custom_report/js/double_leg_transaction.js"
+    "/assets/custom_report/js/petite-vue.js"
 ]
 
 website_route_rules = [
