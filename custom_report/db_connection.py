@@ -42,11 +42,11 @@ def get_dr_connection(retries=3, retry_delay=2, timeout=15):
         )
     )
 
-def execute_dr_query(query, params=None, cursor_factory=None, max_retries=5, title="DR DB Query"):
+def execute_dr_query(query, params=None, cursor_factory=None, max_retries=5, title="DR DB Query", return_columns=False):
     """
     Executes a query on the DR PostgreSQL database with automatic retries on
     connection drops or standby recovery conflicts (40001, 55006, etc.).
-    Returns fetched rows.
+    Returns fetched rows, or (columns, rows) when return_columns=True.
     """
     for attempt in range(max_retries):
         conn = None
@@ -62,6 +62,9 @@ def execute_dr_query(query, params=None, cursor_factory=None, max_retries=5, tit
                 else:
                     cur.execute(query)
                 rows = cur.fetchall()
+                columns = [desc[0] for desc in cur.description] if (return_columns and cur.description) else None
+            if return_columns:
+                return columns, rows
             return rows
         except Exception as e:
             err_str = str(e).lower()
@@ -73,7 +76,7 @@ def execute_dr_query(query, params=None, cursor_factory=None, max_retries=5, tit
                 retry_delay = (attempt + 1) * 3
                 frappe.log_error(
                     message=f"{title} Conflict (Attempt {attempt + 1}/{max_retries}). Retrying in {retry_delay}s... Error: {e}",
-                    title=f"{title} Retry"
+                    title=f"{title} Execution Failed"
                 )
                 time.sleep(retry_delay)
             else:
@@ -85,4 +88,6 @@ def execute_dr_query(query, params=None, cursor_factory=None, max_retries=5, tit
                     conn.close()
                 except Exception:
                     pass
+    if return_columns:
+        return [], []
     return []

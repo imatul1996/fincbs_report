@@ -17,7 +17,9 @@ def get_context(context):
 		context.show_form = False
 	else:
 		context.show_form = True
-	context.is_admin = frappe.session.user == "Administrator"
+	# Hide DB status when not admin, or when admin is impersonating another user
+	impersonated_by = frappe.session.data.get("impersonated_by") if frappe.session else None
+	context.is_admin = frappe.session.user == "Administrator" and not impersonated_by
 
 
 @frappe.whitelist(allow_guest=True)
@@ -28,7 +30,10 @@ def check_db_connectivity():
 	from custom_report.db_connection import get_dr_connection
 	import time
 
-	is_admin = frappe.session.user == "Administrator"
+	impersonated_by = frappe.session.data.get("impersonated_by") if frappe.session else None
+	is_admin = frappe.session.user == "Administrator" and not impersonated_by
+	if not is_admin:
+		frappe.throw("Access Denied", frappe.PermissionError)
 
 	try:
 		start = time.time()
@@ -54,13 +59,12 @@ def check_db_connectivity():
 		}
 
 
-def _build_csv(rows, include_header=True):
+def _build_csv(rows, columns=None, include_header=True):
 	buf = io.StringIO()
 	writer = csv.writer(buf, lineterminator="\r\n")
 
-	if include_header:
-		writer.writerow(["CIF_ID", "ACCOUNT_NO", "BACID", "ACCT_NAME", "SOL_ID",
-		                  "GL_SUB_HEAD_CODE", "TRAN_ID", "TRAN_DATE", "TRAN_TYPE", "TRAN_AMT"])
+	if include_header and columns:
+		writer.writerow([str(c).upper() for c in columns])
 
 	for row in rows:
 		cleaned = []
@@ -87,42 +91,53 @@ def download_transactions():
 		frappe.throw("Access Denied", frappe.PermissionError)
 	from custom_report.db_connection import execute_dr_query
 
-	account_type = frappe.form_dict.get("account_type")
 	account_value = frappe.form_dict.get("account_value", "").strip()
 	start_date = frappe.form_dict.get("start_date")
 	end_date = frappe.form_dict.get("end_date")
 	offset = int(frappe.form_dict.get("offset", 0))
 	limit = int(frappe.form_dict.get("limit", 50000))
 
-	if account_type not in ("bacid", "foracid", "gl_sub_head_code"):
-		frappe.throw("Choose BACID, Account No. or GL SUB HEAD CODE.")
 	if not account_value:
 		frappe.throw("Enter the account value.")
 
-	column_map = {
-		"bacid": "g.bacid",
-		"foracid": "g.foracid",
-		"gl_sub_head_code": "g.gl_sub_head_code",
-	}
-	column = column_map[account_type]
-
-	subquery_column_map = {
-		"bacid": "g2.bacid",
-		"foracid": "g2.foracid",
-		"gl_sub_head_code": "g2.gl_sub_head_code",
-	}
-	subquery_column = subquery_column_map[account_type]
-
-	base_join = f"""
+	core_sql = """
+		SELECT
+			g.cif_id,
+			g.foracid,
+			g.bacid,
+			g.acct_name,
+			g.acct_opn_date,
+			g.acct_cls_date,
+			g.sol_id,
+			g.schm_code,
+			g.schm_type,
+			g.gl_sub_head_code,
+			g.clr_bal_amt,
+			h.*
 		FROM tbaadm.gam g
-		INNER JOIN tbaadm.htd h ON g.acid = h.acid AND h.pstd_flg = 'Y'
+		INNER JOIN tbaadm.htd h
+			ON g.acid = h.acid
+		   AND h.pstd_flg = 'Y'
 		INNER JOIN (
-			SELECT DISTINCT h2.tran_id, h2.tran_date
-			FROM tbaadm.htd h2
-			INNER JOIN tbaadm.gam g2 ON h2.acid = g2.acid AND h2.pstd_flg = 'Y'
-			WHERE {subquery_column} = %(account_value)s
-			  AND h2.tran_date BETWEEN %(start_date)s AND %(end_date)s
-		) v ON h.tran_date = v.tran_date AND h.tran_id = v.tran_id
+			SELECT DISTINCT
+				h.tran_id,
+				h.tran_date
+			FROM tbaadm.htd h
+			INNER JOIN tbaadm.gam g
+				ON h.acid = g.acid
+			   AND h.pstd_flg = 'Y'
+			WHERE (
+					g.bacid = %(account_value)s
+				 OR g.foracid = %(account_value)s
+				 OR g.gl_sub_head_code = %(account_value)s
+				  )
+			  AND h.tran_date BETWEEN %(start_date)s AND %(end_date)s
+		) v
+			ON h.tran_id = v.tran_id
+		   AND h.tran_date = v.tran_date
+		ORDER BY
+			h.tran_date,
+			h.tran_id
 	"""
 
 	params = {
@@ -134,7 +149,10 @@ def download_transactions():
 	}
 
 	try:
-		count_rows = execute_dr_query("SELECT COUNT(*) " + base_join, params)
+		count_rows = execute_dr_query(
+			"SELECT COUNT(*) FROM (" + core_sql.rstrip().rstrip(";") + ") AS report_rows",
+			params,
+		)
 		total = count_rows[0][0] if count_rows else 0
 	except Exception as e:
 		frappe.log_error(frappe.get_traceback(), "Transaction Count Error")
@@ -143,20 +161,14 @@ def download_transactions():
 	if total == 0:
 		frappe.throw("No posted transactions found for this account and date range.")
 
-	data_sql = f"""
-		SELECT g.cif_id, g.foracid, g.bacid, g.acct_name, g.sol_id, g.gl_sub_head_code,
-		       h.tran_id, h.tran_date, h.tran_type, h.tran_amt
-		{base_join}
-		ORDER BY h.tran_date, h.tran_id
-		LIMIT %(limit)s OFFSET %(offset)s
-	"""
+	data_sql = core_sql + "\nLIMIT %(limit)s OFFSET %(offset)s"
 	try:
-		rows = execute_dr_query(data_sql, params)
+		columns, rows = execute_dr_query(data_sql, params, return_columns=True)
 	except Exception as e:
 		frappe.log_error(frappe.get_traceback(), "Transaction Data Error")
 		frappe.throw("The report could not be generated. Try again in a moment.")
 
-	csv_content = _build_csv(rows, include_header=(offset == 0))
+	csv_content = _build_csv(rows, columns=columns, include_header=(offset == 0))
 
 	frappe.local.response["message"] = {
 		"total": total,

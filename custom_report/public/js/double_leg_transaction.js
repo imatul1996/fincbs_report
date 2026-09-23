@@ -33,7 +33,8 @@ const fields = {
 	end: { input: document.getElementById("endDate"), err: document.getElementById("endErr") },
 };
 
-document.getElementById("demoBanner").hidden = !CONFIG.demo;
+const demoBanner = document.getElementById("demoBanner");
+if (demoBanner) demoBanner.hidden = !CONFIG.demo;
 
 // What each "Search by" option means. The value is sent to the backend as account_type.
 const SEARCH_TYPES = {
@@ -67,9 +68,11 @@ function applySearchType() {
 	accountHint.textContent = t.hint;
 	setError("account", "");
 }
-form.querySelectorAll('input[name="account_type"]').forEach((r) =>
-	r.addEventListener("change", applySearchType),
-);
+if (form) {
+	form.querySelectorAll('input[name="account_type"]').forEach((r) =>
+		r.addEventListener("change", applySearchType),
+	);
+}
 
 const today = new Date();
 const todayStr = new Date(today.getTime() - today.getTimezoneOffset() * 60000)
