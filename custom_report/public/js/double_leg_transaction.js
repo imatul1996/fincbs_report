@@ -27,6 +27,24 @@ const timerEl = document.getElementById("timer");
 const bar = document.getElementById("bar");
 const barFill = document.getElementById("barFill");
 
+// Cancel support: while downloading, the Download button becomes Cancel
+let abortController = null;
+let downloadCancelled = false;
+let downloading = false;
+
+function setDownloadingUI(active) {
+	downloading = active;
+	if (active) {
+		btn.textContent = "Cancel";
+		btn.style.background = "var(--danger)";
+		btn.disabled = false;
+	} else {
+		btn.textContent = "Download";
+		btn.style.background = "";
+		btn.disabled = false;
+	}
+}
+
 const fields = {
 	account: {
 		input: document.getElementById("accountValue"),
@@ -231,11 +249,17 @@ function reportBatch(batchNo, totalBatches, rowsDone, total, durations) {
 // One request for one batch, with retries for network and server (5xx) errors.
 async function fetchBatch(params, offset) {
 	for (let attempt = 0; ; attempt++) {
+		if (downloadCancelled) {
+			const err = new Error("Download cancelled.");
+			err.cancelled = true;
+			throw err;
+		}
 		try {
 			const body = new URLSearchParams({ ...params, offset, limit: CONFIG.batchSize });
 			const res = await fetch(CONFIG.endpoint, {
 				method: "POST",
 				body: body,
+				signal: abortController ? abortController.signal : undefined,
 			});
 			const json = await res.json();
 			if (json.message && json.message.total !== undefined) {
@@ -252,6 +276,11 @@ async function fetchBatch(params, offset) {
 			err.fatal = res.status < 500;
 			throw err;
 		} catch (err) {
+			if (err.name === "AbortError" || downloadCancelled) {
+				const c = new Error("Download cancelled.");
+				c.cancelled = true;
+				throw c;
+			}
 			if (err.fatal || attempt >= CONFIG.retries) throw err;
 			progressDetail.textContent =
 				"Batch failed, retrying (" + (attempt + 1) + " of " + CONFIG.retries + ")…";
@@ -274,6 +303,11 @@ async function runDemo() {
 	const durations = [];
 
 	for (let n = 1; n <= totalBatches; n++) {
+		if (downloadCancelled) {
+			const err = new Error("Download cancelled.");
+			err.cancelled = true;
+			throw err;
+		}
 		const t0 = performance.now();
 		progressLabel.textContent = "Downloading batch " + n + " of " + totalBatches + "…";
 		await sleep(450);
@@ -302,6 +336,11 @@ async function runReal(params) {
 	let batchNo = 0;
 
 	while (total === null || offset < total) {
+		if (downloadCancelled) {
+			const err = new Error("Download cancelled.");
+			err.cancelled = true;
+			throw err;
+		}
 		const t0 = performance.now();
 		if (total !== null) {
 			progressLabel.textContent =
@@ -331,6 +370,16 @@ async function runReal(params) {
 // ---- Submit --------------------------------------------------------------
 form.addEventListener("submit", async (e) => {
 	e.preventDefault();
+
+	// While downloading, the same button is Cancel
+	if (downloading) {
+		downloadCancelled = true;
+		if (abortController) abortController.abort();
+		btn.disabled = true;
+		btn.textContent = "Cancelling…";
+		return;
+	}
+
 	statusBox.hidden = true;
 
 	const params = validate();
@@ -340,8 +389,9 @@ form.addEventListener("submit", async (e) => {
 	const reportName =
 		`${params.account_type}_${safeValue}_${params.start_date}_to_${params.end_date}.csv`.toUpperCase();
 
-	btn.disabled = true;
-	btn.textContent = "Downloading…";
+	downloadCancelled = false;
+	abortController = new AbortController();
+	setDownloadingUI(true);
 	bar.classList.remove("done");
 	progressDetail.textContent = "";
 	progressBox.hidden = false;
@@ -367,14 +417,19 @@ form.addEventListener("submit", async (e) => {
 			fmtBytes(blob.size);
 
 		saveBlob(blob, reportName);
-		showStatus("success", "Report downloaded: " + reportName);
+		showStatus("success", "Report downloaded: " + reportName + " · " + nf.format(total) + " rows");
 	} catch (err) {
 		stopTimer();
 		progressBox.hidden = true;
-		showStatus("error", err.message || "Something went wrong. Try again.");
+		if (err.cancelled || downloadCancelled) {
+			showStatus("error", "Download cancelled.");
+		} else {
+			showStatus("error", err.message || "Something went wrong. Try again.");
+		}
 	} finally {
-		btn.disabled = false;
-		btn.textContent = "Download report";
+		abortController = null;
+		downloadCancelled = false;
+		setDownloadingUI(false);
 	}
 });
 
