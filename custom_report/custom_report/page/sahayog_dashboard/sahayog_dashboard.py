@@ -6539,7 +6539,7 @@ def get_rm_wise_ss_vs_data(selected_date=None):
     user = frappe.session.user
     perms = get_user_report_permissions(user)
 
-    where_clauses = ["A.docstatus < 2", "A.agent_type IN ('RDDSA', 'DDDSA')"]
+    where_clauses = ["A.docstatus < 2", "A.agent_type IN ('RDDSA', 'DDDSA')", "(A.agent_code LIKE 'RDDS%' OR A.agent_code LIKE 'DDDS%')", "(A.agent_status IS NULL OR A.agent_status != 'Closed')"]
     where_args = []
 
     if perms.get("is_restricted"):
