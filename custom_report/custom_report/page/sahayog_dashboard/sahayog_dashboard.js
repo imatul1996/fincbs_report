@@ -360,16 +360,16 @@ class DrishtiDashboard {
 									<th style="text-align: right; width: 120px;">Pending Amount</th>
 								</tr></thead>
 								<tbody>
-									${[1,2,3,4,5].map(i => `<tr style="background: ${i%2===0 ? '#f8fafc' : '#fff'};">
+									${[1, 2, 3, 4, 5].map(i => `<tr style="background: ${i % 2 === 0 ? '#f8fafc' : '#fff'};">
 										<td><div class="mis-skeleton-pulse" style="width: 14px; height: 14px; margin: auto;"></div></td>
 										<td><div class="mis-skeleton-pulse" style="width: 20px; margin: auto;"></div></td>
-										<td><div class="mis-skeleton-pulse" style="width: ${120 + Math.random()*60}px;"></div></td>
+										<td><div class="mis-skeleton-pulse" style="width: ${120 + Math.random() * 60}px;"></div></td>
 										<td><div class="mis-skeleton-pulse" style="width: 30px; margin: auto;"></div></td>
-										<td><div class="mis-skeleton-pulse" style="width: ${50 + Math.random()*30}px; margin-left: auto;"></div></td>
-										<td><div class="mis-skeleton-pulse" style="width: ${60 + Math.random()*30}px; margin-left: auto;"></div></td>
-										<td><div class="mis-skeleton-pulse" style="width: ${50 + Math.random()*20}px; margin-left: auto;"></div></td>
-										<td><div class="mis-skeleton-pulse" style="width: ${40 + Math.random()*20}px; margin-left: auto;"></div></td>
-										<td><div class="mis-skeleton-pulse" style="width: ${60 + Math.random()*30}px; margin-left: auto;"></div></td>
+										<td><div class="mis-skeleton-pulse" style="width: ${50 + Math.random() * 30}px; margin-left: auto;"></div></td>
+										<td><div class="mis-skeleton-pulse" style="width: ${60 + Math.random() * 30}px; margin-left: auto;"></div></td>
+										<td><div class="mis-skeleton-pulse" style="width: ${50 + Math.random() * 20}px; margin-left: auto;"></div></td>
+										<td><div class="mis-skeleton-pulse" style="width: ${40 + Math.random() * 20}px; margin-left: auto;"></div></td>
+										<td><div class="mis-skeleton-pulse" style="width: ${60 + Math.random() * 30}px; margin-left: auto;"></div></td>
 									</tr>`).join('')}
 								</tbody>
 							</table>
@@ -954,10 +954,10 @@ class DrishtiDashboard {
 					container.html(`
 						<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; margin-bottom: 16px;">
 							${[
-								{ l: "SA Accounts", v: totSA }, { l: "CA Accounts", v: totCA }, { l: "TASC Accounts", v: totTASC },
-								{ l: "RD Accounts", v: totRD }, { l: "SMBG Accounts", v: totSMBG }, { l: "DD Accounts", v: totDD },
-								{ l: "FD Accounts", v: totFD }
-							].map(c => `<div style="padding: 12px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; text-align: center;"><div style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase;">${c.l}</div><div style="font-size: 20px; font-weight: 800; color: #417d81; margin-top: 4px;">${new Intl.NumberFormat("en-IN").format(c.v)}</div></div>`).join('')}
+							{ l: "SA Accounts", v: totSA }, { l: "CA Accounts", v: totCA }, { l: "TASC Accounts", v: totTASC },
+							{ l: "RD Accounts", v: totRD }, { l: "SMBG Accounts", v: totSMBG }, { l: "DD Accounts", v: totDD },
+							{ l: "FD Accounts", v: totFD }
+						].map(c => `<div style="padding: 12px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; text-align: center;"><div style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase;">${c.l}</div><div style="font-size: 20px; font-weight: 800; color: #417d81; margin-top: 4px;">${new Intl.NumberFormat("en-IN").format(c.v)}</div></div>`).join('')}
 							<div style="padding: 12px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; text-align: center;"><div style="font-size: 11px; font-weight: 700; color: #166534; text-transform: uppercase;">Total Opened</div><div style="font-size: 20px; font-weight: 800; color: #15803d; margin-top: 4px;">${new Intl.NumberFormat("en-IN").format(totAll)}</div></div>
 						</div>
 					`);
@@ -1087,15 +1087,15 @@ class DrishtiDashboard {
 						self.allExpanded = !self.allExpanded;
 						const expand = self.allExpanded;
 						if (!self.tableData) return;
-						
+
 						if (!self.expandedTreeNodes) self.expandedTreeNodes = {};
-						
+
 						if (expand) {
 							self.tableData.forEach(row => {
 								const z = (row.zone || "").trim();
 								const r = (row.region || "").trim();
 								const d = (row.district || "").trim();
-								
+
 								if (z) {
 									self.expandedTreeNodes[z] = true;
 									self.expandedTreeNodes[`z_${z}`] = true;
@@ -1114,7 +1114,7 @@ class DrishtiDashboard {
 							self.expandedZones = {};
 							self.expandedRegions = {};
 						}
-						
+
 						$(this).text(expand ? "▲ Collapse All" : "▼ Expand All");
 						self.renderMisTable(container.find("#mis-table-container"), dashboardInstance);
 					});
@@ -1229,21 +1229,21 @@ class DrishtiDashboard {
 					self._renderNtbTable = () => renderTable(getFilteredData());
 
 					const fetchData = () => {
-					frappe.call({
-						method: "custom_report.custom_report.page.sahayog_dashboard.sahayog_dashboard.get_ntb_evr_data",
-						args: { selected_date: dashboardInstance.state.selectedDate },
-						callback: function (r) {
-							if (r.message && r.message.data) {
-								self.tableData = r.message.data;
-								self.totalRows = r.message.total_rows || 0;
-								renderTable(getFilteredData());
-							} else {
-								container.find("#ntb-evr-table-container").html('<div style="padding: 30px; text-align: center; color: #94a3b8; font-weight: 600;">No data available</div>');
+						frappe.call({
+							method: "custom_report.custom_report.page.sahayog_dashboard.sahayog_dashboard.get_ntb_evr_data",
+							args: { selected_date: dashboardInstance.state.selectedDate },
+							callback: function (r) {
+								if (r.message && r.message.data) {
+									self.tableData = r.message.data;
+									self.totalRows = r.message.total_rows || 0;
+									renderTable(getFilteredData());
+								} else {
+									container.find("#ntb-evr-table-container").html('<div style="padding: 30px; text-align: center; color: #94a3b8; font-weight: 600;">No data available</div>');
+								}
+								container.find("#ntb-evr-loading").hide();
+								self.renderZoneFilterTags(container, dashboardInstance);
 							}
-							container.find("#ntb-evr-loading").hide();
-							self.renderZoneFilterTags(container, dashboardInstance);
-						}
-					});
+						});
 					};
 
 					if (self.tableData && self.tableData.length > 0) {
@@ -1281,15 +1281,15 @@ class DrishtiDashboard {
 						self.allExpanded = !self.allExpanded;
 						const expand = self.allExpanded;
 						if (!self.tableData) return;
-						
+
 						if (!self.expandedTreeNodes) self.expandedTreeNodes = {};
-						
+
 						if (expand) {
 							self.tableData.forEach(row => {
 								const z = (row.zone || "").trim();
 								const r = (row.region || "").trim();
 								const d = (row.district || "").trim();
-								
+
 								if (z) {
 									self.expandedTreeNodes[z] = true;
 									self.expandedTreeNodes[`z_${z}`] = true;
@@ -1308,7 +1308,7 @@ class DrishtiDashboard {
 							self.expandedZones = {};
 							self.expandedRegions = {};
 						}
-						
+
 						$(this).text(expand ? "▲ Collapse All" : "▼ Expand All");
 						self._renderNtbTable();
 					});
@@ -1500,13 +1500,13 @@ class DrishtiDashboard {
 								<table id="cavg-table">
 									<thead><tr>
 										${columns.map(c => {
-											const stickyClass = c.sticky ? ` cavg-sticky cavg-sticky-${c.sticky}` : "";
-											const wStyle = c.sticky ? `width: ${c.w}; min-width: ${c.w}; max-width: ${c.w}; overflow:hidden; text-overflow:ellipsis;` : `min-width: ${c.w};`;
-											return `<th class="${stickyClass}" style="${wStyle}">
+							const stickyClass = c.sticky ? ` cavg-sticky cavg-sticky-${c.sticky}` : "";
+							const wStyle = c.sticky ? `width: ${c.w}; min-width: ${c.w}; max-width: ${c.w}; overflow:hidden; text-overflow:ellipsis;` : `min-width: ${c.w};`;
+							return `<th class="${stickyClass}" style="${wStyle}">
 												<span>${c.label}</span>
 												<div class="cavg-resizer"></div>
 											</th>`;
-										}).join("")}
+						}).join("")}
 									</tr></thead>
 									<tbody id="cavg-tbody"></tbody>
 								</table>
@@ -1656,27 +1656,27 @@ class DrishtiDashboard {
 						$bar.html(html);
 					};
 
-				const renderPage = () => {
-					initTable();
-					const pageData = self.cachedPages[self.currentPage] || [];
-					const normSolId = (v) => String(v == null ? "" : v).replace(/^0+/, "").trim();
-					const bmSol = (dashboardInstance.isBranchManager && dashboardInstance.userSolId)
-						? normSolId(dashboardInstance.userSolId)
-						: null;
-					let filtered = self.searchTerm
-						? pageData.filter(r => Object.values(r).some(v => v !== null && String(v).toLowerCase().includes(self.searchTerm)))
-						: pageData;
-					if (bmSol) {
-						filtered = filtered.filter(r => normSolId(r.sol_id) === bmSol);
-					}
-					if (self.selectedMisZones && self.selectedMisZones.length > 0) {
-						filtered = filtered.filter(r => self.selectedMisZones.includes(r.circle_office_name));
-					}
-					appendRows(filtered);
-					applyStickyLeft();
-					updateCount();
-					renderPaginationBar();
-				};
+					const renderPage = () => {
+						initTable();
+						const pageData = self.cachedPages[self.currentPage] || [];
+						const normSolId = (v) => String(v == null ? "" : v).replace(/^0+/, "").trim();
+						const bmSol = (dashboardInstance.isBranchManager && dashboardInstance.userSolId)
+							? normSolId(dashboardInstance.userSolId)
+							: null;
+						let filtered = self.searchTerm
+							? pageData.filter(r => Object.values(r).some(v => v !== null && String(v).toLowerCase().includes(self.searchTerm)))
+							: pageData;
+						if (bmSol) {
+							filtered = filtered.filter(r => normSolId(r.sol_id) === bmSol);
+						}
+						if (self.selectedMisZones && self.selectedMisZones.length > 0) {
+							filtered = filtered.filter(r => self.selectedMisZones.includes(r.circle_office_name));
+						}
+						appendRows(filtered);
+						applyStickyLeft();
+						updateCount();
+						renderPaginationBar();
+					};
 
 					// Invalidate cache if date changed
 					if (self.cacheDate && self.cacheDate !== (dashboardInstance.state.selectedDate || frappe.datetime.get_today())) {
@@ -1838,7 +1838,7 @@ class DrishtiDashboard {
 							Object.keys(sessionStorage).forEach(k => {
 								if (k && k.startsWith(prefix)) sessionStorage.removeItem(k);
 							});
-						} catch (e) {}
+						} catch (e) { }
 
 						container.find("#cavg-search").val("");
 						container.find("#cavg-table-container").hide().empty();
@@ -1885,7 +1885,7 @@ class DrishtiDashboard {
 					});
 
 					const selDate = dashboardInstance.state.selectedDate || frappe.datetime.get_today();
-					
+
 					const ensureFilterOptions = () => {
 						if (self.filterOptions && self.filterOptions.zones && self.filterOptions.zones.length > 0) {
 							self.renderZoneFilterTags(container, dashboardInstance);
@@ -1945,7 +1945,7 @@ class DrishtiDashboard {
 						if (zone === "all") { self.selectedMisZones = []; }
 						else { const idx = self.selectedMisZones.indexOf(zone); if (idx > -1) { self.selectedMisZones.splice(idx, 1); } else { self.selectedMisZones.push(zone); } }
 						self.renderZoneFilterTags(container, dashboardInstance);
-						
+
 						self.currentPage = 1;
 						self.cachedPages = {};
 						self.totalRows = 0;
@@ -2060,15 +2060,15 @@ class DrishtiDashboard {
 						self.allExpanded = !self.allExpanded;
 						const expand = self.allExpanded;
 						if (!self.tableData) return;
-						
+
 						if (!self.expandedTreeNodes) self.expandedTreeNodes = {};
-						
+
 						if (expand) {
 							self.tableData.forEach(row => {
 								const z = (row.zone || row.parent_zone || "").trim();
 								const r = (row.region || (row.parent_region ? row.parent_region.split("/").pop() : "") || "").trim();
 								const d = (row.district || (row.parent_district ? row.parent_district.split("/").pop() : "") || "").trim();
-								
+
 								if (z) {
 									self.expandedTreeNodes[z] = true;
 									self.expandedTreeNodes[`z_${z}`] = true;
@@ -2087,7 +2087,7 @@ class DrishtiDashboard {
 							self.expandedZones = {};
 							self.expandedRegions = {};
 						}
-						
+
 						$(this).text(expand ? "▲ Collapse All" : "▼ Expand All");
 						self.renderGLWiseTable(container.find("#mis-table-container"), dashboardInstance);
 					});
@@ -2154,35 +2154,35 @@ class DrishtiDashboard {
 						return;
 					}
 
-				const allProducts = self.allProducts.filter(p => p !== "TDA" && p !== "SHARE" && p !== "JLL RD" && p !== "SKBG" && p !== "TASKSILVER" && p !== "TASKWEALTH" && p !== "SAVSIL" && p !== "CUGOLD" && p !== "CUWEALTH");
-				if (self.allProducts.includes("SHARE")) {
-					allProducts.push("SHARE");
-				}
-				if (self.allProducts.includes("JLL RD")) {
-					const rdIdx = allProducts.indexOf("RD");
-					if (rdIdx !== -1) {
-						allProducts.splice(rdIdx + 1, 0, "JLL RD");
-					} else {
-						allProducts.push("JLL RD");
+					const allProducts = self.allProducts.filter(p => p !== "TDA" && p !== "SHARE" && p !== "JLL RD" && p !== "SKBG" && p !== "TASKSILVER" && p !== "TASKWEALTH" && p !== "SAVSIL" && p !== "CUGOLD" && p !== "CUWEALTH");
+					if (self.allProducts.includes("SHARE")) {
+						allProducts.push("SHARE");
 					}
-				}
-				if (self.allProducts.includes("SKBG")) {
-					const smbgIdx = allProducts.indexOf("SMBG");
-					if (smbgIdx !== -1) {
-						allProducts.splice(smbgIdx + 1, 0, "SKBG");
-					} else {
-						allProducts.push("SKBG");
+					if (self.allProducts.includes("JLL RD")) {
+						const rdIdx = allProducts.indexOf("RD");
+						if (rdIdx !== -1) {
+							allProducts.splice(rdIdx + 1, 0, "JLL RD");
+						} else {
+							allProducts.push("JLL RD");
+						}
 					}
-				}
-				if (self.allProducts.includes("TASKSILVER") || self.allProducts.includes("TASKWEALTH") || self.allProducts.includes("SAVSIL") || self.allProducts.includes("CUGOLD") || self.allProducts.includes("CUWEALTH")) {
-					const skbgIdx = allProducts.indexOf("SKBG");
-					const newCols = ["TASKSILVER", "TASKWEALTH", "SAVSIL", "CUGOLD", "CUWEALTH"].filter(c => self.allProducts.includes(c));
-					if (skbgIdx !== -1) {
-						allProducts.splice(skbgIdx + 1, 0, ...newCols);
-					} else {
-						newCols.forEach(c => allProducts.push(c));
+					if (self.allProducts.includes("SKBG")) {
+						const smbgIdx = allProducts.indexOf("SMBG");
+						if (smbgIdx !== -1) {
+							allProducts.splice(smbgIdx + 1, 0, "SKBG");
+						} else {
+							allProducts.push("SKBG");
+						}
 					}
-				}
+					if (self.allProducts.includes("TASKSILVER") || self.allProducts.includes("TASKWEALTH") || self.allProducts.includes("SAVSIL") || self.allProducts.includes("CUGOLD") || self.allProducts.includes("CUWEALTH")) {
+						const skbgIdx = allProducts.indexOf("SKBG");
+						const newCols = ["TASKSILVER", "TASKWEALTH", "SAVSIL", "CUGOLD", "CUWEALTH"].filter(c => self.allProducts.includes(c));
+						if (skbgIdx !== -1) {
+							allProducts.splice(skbgIdx + 1, 0, ...newCols);
+						} else {
+							newCols.forEach(c => allProducts.push(c));
+						}
+					}
 
 					// Build dynamic header with product columns
 					let headerHtml = `
@@ -2424,7 +2424,8 @@ class DrishtiDashboard {
 				type: "group",
 				children: ["bucket_wise_account_mis", "new_account_report", "staff_wise_demand_collection", "agent_wise_demand_collection"]
 			},
-			{	id: "bucket_wise_account_mis",
+			{
+				id: "bucket_wise_account_mis",
 				name: "Bucket Wise Account MIS",
 				tableData: [],
 				expandedZones: {},
@@ -2434,7 +2435,7 @@ class DrishtiDashboard {
 				searchTerm: "",
 				allExpanded: false,
 				selectedMisZones: [],
-				render: function(container, dashboardInstance, seq) {
+				render: function (container, dashboardInstance, seq) {
 					const self = this;
 					container.html(`
 						<div style="display: flex; gap: 8px; align-items: center; margin-bottom: 10px;" id="mis-controls">
@@ -2472,7 +2473,7 @@ class DrishtiDashboard {
 					frappe.call({
 						method: "custom_report.custom_report.page.sahayog_dashboard.sahayog_dashboard.get_bucket_wise_account_mis_data",
 						args: { selected_date: dashboardInstance.state.selectedDate },
-						callback: function(r) {
+						callback: function (r) {
 							if (dashboardInstance._misRenderSeq !== seq) return;
 							if (r.message && r.message.summary) {
 								self.tableData = r.message.summary;
@@ -2487,7 +2488,7 @@ class DrishtiDashboard {
 					});
 					self.attachReportEventHandlers(container, dashboardInstance);
 				},
-				attachReportEventHandlers: function(container, dashboardInstance) {
+				attachReportEventHandlers: function (container, dashboardInstance) {
 					const self = this;
 					container.off("click", ".mis-format-btn").on("click", ".mis-format-btn", function () {
 						const format = $(this).data("format");
@@ -2534,7 +2535,7 @@ class DrishtiDashboard {
 						self.refetchData(container, dashboardInstance);
 					});
 				},
-				renderKPI: function(container, dashboardInstance) {
+				renderKPI: function (container, dashboardInstance) {
 					const self = this;
 					const data = self.tableData || [];
 					const totalAccounts = data.reduce((s, r) => s + (r.grand_total || 0), 0);
@@ -2579,7 +2580,7 @@ class DrishtiDashboard {
 						${kpiCards.map(card => `<div class="kpi-card" style="background: ${card.bg}; border-left: 4px solid ${card.color};"><div class="kpi-card-header"><span class="kpi-icon">${card.icon}</span><span class="kpi-label">${card.label}</span></div><div class="kpi-value" style="color: ${card.color};">${card.value}</div></div>`).join('')}
 					`);
 				},
-				refetchData: function(container, dashboardInstance) {
+				refetchData: function (container, dashboardInstance) {
 					const self = this;
 					self.tableData = [];
 					self.expandedZones = {};
@@ -2592,18 +2593,18 @@ class DrishtiDashboard {
 					dashboardInstance._misRenderSeq = (dashboardInstance._misRenderSeq || 0) + 1;
 					self.render(container, dashboardInstance, dashboardInstance._misRenderSeq);
 				},
-				switchFormat: function(format, container, dashboardInstance) {
+				switchFormat: function (format, container, dashboardInstance) {
 					const self = this;
 					if (self.tableData && self.tableData.length > 0) {
 						self.renderMisTable(container.find("#mis-table-container"), dashboardInstance);
 					}
 					self.renderKPI(container.find("#mis-kpi-container"), dashboardInstance);
 				},
-				renderMisTable: function(tableContainer, dashboardInstance) {
+				renderMisTable: function (tableContainer, dashboardInstance) {
 					const self = this;
 					self.renderAnalysisTable(tableContainer, dashboardInstance);
 				},
-				renderZoneFilterTags: function(container, dashboardInstance) {
+				renderZoneFilterTags: function (container, dashboardInstance) {
 					const self = this;
 					if (!self.tableData || self.tableData.length === 0) {
 						container.find("#mis-zone-filter-row").hide();
@@ -2635,7 +2636,7 @@ class DrishtiDashboard {
 						self.renderMisTable(container.find("#mis-table-container"), dashboardInstance);
 					});
 				},
-				aggregateByZone: function() {
+				aggregateByZone: function () {
 					const self = this;
 					let data = self.tableData || [];
 					const term = (self.searchTerm || "").trim();
@@ -2658,33 +2659,33 @@ class DrishtiDashboard {
 						const district = row.district || "Unknown";
 
 						if (!zoneMap[zone]) {
-							zoneMap[zone] = { 
-								zone, 
-								regions: {}, 
-								branches: [], 
-								A: 0, B: 0, C: 0, D: 0, DEFAULT: 0, Excess: 0, grand_total: 0 
+							zoneMap[zone] = {
+								zone,
+								regions: {},
+								branches: [],
+								A: 0, B: 0, C: 0, D: 0, DEFAULT: 0, Excess: 0, grand_total: 0
 							};
 						}
 						if (!zoneMap[zone].regions[region]) {
-							zoneMap[zone].regions[region] = { 
-								region, 
-								districts: {}, 
-								branches: [], 
-								A: 0, B: 0, C: 0, D: 0, DEFAULT: 0, Excess: 0, grand_total: 0 
+							zoneMap[zone].regions[region] = {
+								region,
+								districts: {},
+								branches: [],
+								A: 0, B: 0, C: 0, D: 0, DEFAULT: 0, Excess: 0, grand_total: 0
 							};
 						}
 						if (!zoneMap[zone].regions[region].districts[district]) {
 							zoneMap[zone].regions[region].districts[district] = {
 								district,
 								branches: [],
-								A: 0, B: 0, C: 0, D: 0, DEFAULT: 0, Excess: 0, grand_total: 0 
+								A: 0, B: 0, C: 0, D: 0, DEFAULT: 0, Excess: 0, grand_total: 0
 							};
 						}
 
 						zoneMap[zone].branches.push(row);
 						zoneMap[zone].regions[region].branches.push(row);
 						zoneMap[zone].regions[region].districts[district].branches.push(row);
-						
+
 						// Aggregate metrics
 						["A", "B", "C", "D", "DEFAULT", "Excess", "grand_total"].forEach(k => {
 							zoneMap[zone][k] += (row[k] || 0);
@@ -2707,7 +2708,7 @@ class DrishtiDashboard {
 					});
 					return result;
 				},
-				renderAnalysisTable: function(tableContainer, dashboardInstance) {
+				renderAnalysisTable: function (tableContainer, dashboardInstance) {
 					const self = this;
 					const format = dashboardInstance.state.formatMode || "number";
 					const fmtCount = (val) => {
@@ -2748,7 +2749,7 @@ class DrishtiDashboard {
 						const zoneExpanded = self.expandedZones[z.zone];
 						const zoneRow = z.data;
 						const zoneChecked = self.checkedRows["zone::" + z.zone];
-						
+
 						rowsHtml += `<tr class="mis-zone-row${zoneChecked ? " mis-row-checked" : ""}" data-zone="${z.zone}" data-check-id="zone::${z.zone}" style="cursor: pointer; background: #f1f5f9; border-bottom: 1px solid #cbd5e1;">
 							<td style="padding: 10px 14px; font-weight: 700; color: #0f172a; text-align: center; white-space: nowrap; width: 30px; vertical-align: middle;"><input type="checkbox" class="mis-row-check" data-check-id="zone::${z.zone}" ${zoneChecked ? "checked" : ""} style="cursor: pointer; width: 14px; height: 14px;"></td>
 							<td style="padding: 10px 14px; font-weight: 700; color: #0f172a; text-align: center; white-space: nowrap; width: 40px; font-size: 14px;">${sr}</td>
@@ -2764,7 +2765,7 @@ class DrishtiDashboard {
 							const regionKey = z.zone + "::" + region;
 							const regionExpanded = self.expandedRegions[regionKey];
 							const regionChecked = self.checkedRows[regionKey];
-							
+
 							rowsHtml += `<tr class="mis-region-row${regionChecked ? " mis-row-checked" : ""}" data-zone="${z.zone}" data-region="${region}" data-check-id="${regionKey}" style="display: ${zoneExpanded ? "table-row" : "none"}; cursor: pointer; background: #f8fafc; border-bottom: 1px solid #e2e8f0;">
 								<td style="padding: 8px 14px; text-align: center; white-space: nowrap; vertical-align: middle;"><input type="checkbox" class="mis-row-check" data-check-id="${regionKey}" ${regionChecked ? "checked" : ""} style="cursor: pointer; width: 14px; height: 14px;"></td>
 								<td style="padding: 8px 14px; color: #64748b; text-align: center; white-space: nowrap; font-size: 14px;"></td>
@@ -2795,7 +2796,7 @@ class DrishtiDashboard {
 									const branchBg = bi % 2 === 0 ? "#ffffff" : "#f1f5f9";
 									const solId = branch.sol_id || "branch_" + bi;
 									const branchChecked = self.checkedRows[solId];
-									
+
 									rowsHtml += `<tr class="mis-branch-row${branchChecked ? " mis-row-checked" : ""}" data-zone="${z.zone}" data-region="${region}" data-district="${district}" data-check-id="${solId}" style="display: ${showBranch ? "table-row" : "none"}; background: ${branchBg}; border-bottom: 1px solid #e2e8f0;">
 										<td style="padding: 6px 14px; text-align: center; white-space: nowrap; vertical-align: middle;"><input type="checkbox" class="mis-row-check" data-check-id="${solId}" ${branchChecked ? "checked" : ""} style="cursor: pointer; width: 14px; height: 14px;"></td>
 										<td style="padding: 6px 14px; color: #94a3b8; text-align: center; white-space: nowrap; font-size: 14px;"></td>
@@ -2915,10 +2916,10 @@ class DrishtiDashboard {
 						self.expandedDistricts[districtKey] = !self.expandedDistricts[districtKey];
 						const show = self.expandedDistricts[districtKey];
 						const $branchRows = tableContainer.find(`.mis-branch-row[data-zone="${zone}"][data-region="${region}"][data-district="${district}"]`);
-						if (show) { 
-							$branchRows.stop(true, true).slideDown(200); 
-						} else { 
-							$branchRows.stop(true, true).slideUp(150); 
+						if (show) {
+							$branchRows.stop(true, true).slideDown(200);
+						} else {
+							$branchRows.stop(true, true).slideUp(150);
 						}
 						$(this).find(".mis-district-toggle").text(show ? "▼" : "▶");
 					});
@@ -2938,7 +2939,8 @@ class DrishtiDashboard {
 					});
 				},
 			},
-			{	id: "new_account_report",
+			{
+				id: "new_account_report",
 				name: "New Account Report",
 				tableData: [],
 				expandedZones: {},
@@ -2949,7 +2951,7 @@ class DrishtiDashboard {
 				searchTerm: "",
 				allExpanded: false,
 				selectedMisZones: [],
-				render: function(container, dashboardInstance, seq) {
+				render: function (container, dashboardInstance, seq) {
 					const self = this;
 					container.html(`
 						<div style="display: flex; gap: 8px; align-items: center; margin-bottom: 10px;" id="mis-controls">
@@ -2987,7 +2989,7 @@ class DrishtiDashboard {
 					frappe.call({
 						method: "custom_report.custom_report.page.sahayog_dashboard.sahayog_dashboard.get_new_account_report_data",
 						args: { selected_date: dashboardInstance.state.selectedDate },
-						callback: function(r) {
+						callback: function (r) {
 							if (dashboardInstance._misRenderSeq !== seq) return;
 							container.find("#mis-loading").hide();
 							if (r.message && r.message.length) {
@@ -3002,7 +3004,7 @@ class DrishtiDashboard {
 					});
 					self.attachReportEventHandlers(container, dashboardInstance);
 				},
-				attachReportEventHandlers: function(container, dashboardInstance) {
+				attachReportEventHandlers: function (container, dashboardInstance) {
 					const self = this;
 					container.off("click", ".mis-format-btn").on("click", ".mis-format-btn", function () {
 						const format = $(this).data("format");
@@ -3052,7 +3054,7 @@ class DrishtiDashboard {
 						self.refetchData(container, dashboardInstance);
 					});
 				},
-				renderKPI: function(container, dashboardInstance) {
+				renderKPI: function (container, dashboardInstance) {
 					const self = this;
 					const data = self.tableData || [];
 					const totalNewAccounts = data.reduce((s, r) => s + (parseInt(r.new_ac) || 0), 0);
@@ -3103,7 +3105,7 @@ class DrishtiDashboard {
 						</div>
 					`);
 				},
-				refetchData: function(container, dashboardInstance) {
+				refetchData: function (container, dashboardInstance) {
 					const self = this;
 					self.tableData = [];
 					self.expandedZones = {};
@@ -3117,14 +3119,14 @@ class DrishtiDashboard {
 					dashboardInstance._misRenderSeq = (dashboardInstance._misRenderSeq || 0) + 1;
 					self.render(container, dashboardInstance, dashboardInstance._misRenderSeq);
 				},
-				switchFormat: function(format, container, dashboardInstance) {
+				switchFormat: function (format, container, dashboardInstance) {
 					const self = this;
 					if (self.tableData && self.tableData.length > 0) {
 						self.renderMisTable(container.find("#mis-table-container"), dashboardInstance);
 					}
 					self.renderKPI(container.find("#mis-kpi-container"), dashboardInstance);
 				},
-				renderZoneFilterTags: function(container, dashboardInstance) {
+				renderZoneFilterTags: function (container, dashboardInstance) {
 					const self = this;
 					if (!self.tableData || self.tableData.length === 0) {
 						container.find("#mis-zone-filter-row").hide();
@@ -3156,7 +3158,7 @@ class DrishtiDashboard {
 						self.renderMisTable(container.find("#mis-table-container"), dashboardInstance);
 					});
 				},
-				aggregateByZone: function() {
+				aggregateByZone: function () {
 					const self = this;
 					let data = self.tableData || [];
 					const term = (self.searchTerm || "").trim().toLowerCase();
@@ -3184,7 +3186,7 @@ class DrishtiDashboard {
 						const district = row.district || "Unknown";
 						const solId = row.sol_id || "Unknown";
 						const solDesc = row.sol_desc || row.sol_id || "Unknown";
-						
+
 						if (!zoneMap[zone]) {
 							zoneMap[zone] = { zone, regions: {}, new_ac: 0, deposit_amount: 0.0, branches_count: new Set() };
 						}
@@ -3195,36 +3197,36 @@ class DrishtiDashboard {
 							zoneMap[zone].regions[region].districts[district] = { district, branches: {}, new_ac: 0, deposit_amount: 0.0 };
 						}
 						if (!zoneMap[zone].regions[region].districts[district].branches[solId]) {
-							zoneMap[zone].regions[region].districts[district].branches[solId] = { 
-								sol_id: solId, 
-								sol_desc: solDesc, 
-								authorizers: [], 
-								new_ac: 0, 
-								deposit_amount: 0.0 
+							zoneMap[zone].regions[region].districts[district].branches[solId] = {
+								sol_id: solId,
+								sol_desc: solDesc,
+								authorizers: [],
+								new_ac: 0,
+								deposit_amount: 0.0
 							};
 						}
-						
+
 						const branchObj = zoneMap[zone].regions[region].districts[district].branches[solId];
 						branchObj.authorizers.push(row);
-						
+
 						const new_ac = parseInt(row.new_ac || 0);
 						const dep_amt = parseFloat(row.deposit_amount || 0);
-						
+
 						branchObj.new_ac += new_ac;
 						branchObj.deposit_amount += dep_amt;
-						
+
 						zoneMap[zone].regions[region].districts[district].new_ac += new_ac;
 						zoneMap[zone].regions[region].districts[district].deposit_amount += dep_amt;
-						
+
 						zoneMap[zone].regions[region].new_ac += new_ac;
 						zoneMap[zone].regions[region].deposit_amount += dep_amt;
 						zoneMap[zone].regions[region].branches_count.add(solId);
-						
+
 						zoneMap[zone].new_ac += new_ac;
 						zoneMap[zone].deposit_amount += dep_amt;
 						zoneMap[zone].branches_count.add(solId);
 					});
-					
+
 					const sortedZones = Object.keys(zoneMap).sort();
 					const result = [];
 					sortedZones.forEach(zoneName => {
@@ -3245,7 +3247,7 @@ class DrishtiDashboard {
 					});
 					return result;
 				},
-				renderMisTable: function(tableContainer, dashboardInstance) {
+				renderMisTable: function (tableContainer, dashboardInstance) {
 					const self = this;
 					const format = dashboardInstance.state.formatMode || "number";
 					const fmtCount = (val) => {
@@ -3290,7 +3292,7 @@ class DrishtiDashboard {
 						const zoneExpanded = self.expandedZones[z.zone];
 						const zoneRow = z.data;
 						const zoneChecked = self.checkedRows["zone::" + z.zone];
-						
+
 						rowsHtml += `<tr class="mis-zone-row${zoneChecked ? " mis-row-checked" : ""}" data-zone="${z.zone}" data-check-id="zone::${z.zone}" style="cursor: pointer; background: #f1f5f9; border-bottom: 1px solid #cbd5e1;">
 							<td style="padding: 10px 14px; text-align: center; white-space: nowrap; width: 30px; vertical-align: middle;"><input type="checkbox" class="mis-row-check" data-check-id="zone::${z.zone}" ${zoneChecked ? "checked" : ""} style="cursor: pointer; width: 14px; height: 14px;"></td>
 							<td style="padding: 10px 14px; font-weight: 700; color: #0f172a; text-align: center; white-space: nowrap; width: 40px; font-size: 14px;">${sr}</td>
@@ -3309,7 +3311,7 @@ class DrishtiDashboard {
 							const regionKey = z.zone + "::" + region;
 							const regionExpanded = self.expandedRegions[regionKey];
 							const regionChecked = self.checkedRows[regionKey];
-							
+
 							rowsHtml += `<tr class="mis-region-row${regionChecked ? " mis-row-checked" : ""}" data-zone="${z.zone}" data-region="${region}" data-check-id="${regionKey}" style="display: ${zoneExpanded ? "table-row" : "none"}; cursor: pointer; background: #f8fafc; border-bottom: 1px solid #e2e8f0;">
 								<td style="padding: 8px 14px; text-align: center; white-space: nowrap; vertical-align: middle;"><input type="checkbox" class="mis-row-check" data-check-id="${regionKey}" ${regionChecked ? "checked" : ""} style="cursor: pointer; width: 14px; height: 14px;"></td>
 								<td style="padding: 8px 14px; color: #64748b; text-align: center; white-space: nowrap; font-size: 14px;"></td>
@@ -3364,7 +3366,7 @@ class DrishtiDashboard {
 										const authBg = ai % 2 === 0 ? "#fafafa" : "#f5f5f5";
 										const authKey = branchKey + "::" + auth.auth_id;
 										const authChecked = self.checkedRows[authKey];
-										
+
 										rowsHtml += `<tr class="mis-auth-row${authChecked ? " mis-row-checked" : ""}" data-zone="${z.zone}" data-region="${region}" data-district="${district}" data-branch="${branch.sol_id}" data-check-id="${authKey}" style="display: ${showAuth ? "table-row" : "none"}; background: ${authBg}; border-bottom: 1px solid #f1f5f9;">
 											<td style="padding: 6px 14px; text-align: center; white-space: nowrap; vertical-align: middle;"><input type="checkbox" class="mis-row-check" data-check-id="${authKey}" ${authChecked ? "checked" : ""} style="cursor: pointer; width: 14px; height: 14px;"></td>
 											<td style="padding: 6px 14px; color: #94a3b8; text-align: center; white-space: nowrap; font-size: 14px;"></td>
@@ -3482,7 +3484,8 @@ class DrishtiDashboard {
 					});
 				}
 			},
-			{	id: "staff_wise_demand_collection",
+			{
+				id: "staff_wise_demand_collection",
 				name: "Staff Wise Demand Vs Collection Report",
 				tableData: [],
 				expandedZones: {},
@@ -3493,7 +3496,7 @@ class DrishtiDashboard {
 				searchTerm: "",
 				allExpanded: false,
 				selectedMisZones: [],
-				render: function(container, dashboardInstance, seq) {
+				render: function (container, dashboardInstance, seq) {
 					const self = this;
 					container.html(`
 						<div style="display: flex; gap: 8px; align-items: center; margin-bottom: 10px;" id="mis-controls">
@@ -3530,13 +3533,13 @@ class DrishtiDashboard {
 
 					frappe.call({
 						method: "custom_report.custom_report.page.sahayog_dashboard.sahayog_dashboard.get_mis_filter_options",
-						callback: function(fo) {
+						callback: function (fo) {
 							if (dashboardInstance._misRenderSeq !== seq) return;
 							const fOpts = fo.message || {};
 							frappe.call({
 								method: "custom_report.custom_report.page.sahayog_dashboard.sahayog_dashboard.get_staff_wise_demand_collection_data",
 								args: { selected_date: dashboardInstance.state.selectedDate },
-								callback: function(r) {
+								callback: function (r) {
 									if (dashboardInstance._misRenderSeq !== seq) return;
 									container.find("#mis-loading").hide();
 									if (r.message && r.message.length) {
@@ -3553,7 +3556,7 @@ class DrishtiDashboard {
 					});
 					self.attachReportEventHandlers(container, dashboardInstance);
 				},
-				attachReportEventHandlers: function(container, dashboardInstance) {
+				attachReportEventHandlers: function (container, dashboardInstance) {
 					const self = this;
 					container.off("click", ".mis-format-btn").on("click", ".mis-format-btn", function () {
 						const format = $(this).data("format");
@@ -3603,7 +3606,7 @@ class DrishtiDashboard {
 						self.refetchData(container, dashboardInstance);
 					});
 				},
-				renderKPI: function(container, dashboardInstance) {
+				renderKPI: function (container, dashboardInstance) {
 					const self = this;
 					const data = self.tableData || [];
 					const totalDemand = data.reduce((s, r) => s + (parseFloat(r.monthly_demand_amount) || 0.0), 0.0);
@@ -3653,7 +3656,7 @@ class DrishtiDashboard {
 						</div>
 					`);
 				},
-				refetchData: function(container, dashboardInstance) {
+				refetchData: function (container, dashboardInstance) {
 					const self = this;
 					self.tableData = [];
 					self.expandedZones = {};
@@ -3667,14 +3670,14 @@ class DrishtiDashboard {
 					dashboardInstance._misRenderSeq = (dashboardInstance._misRenderSeq || 0) + 1;
 					self.render(container, dashboardInstance, dashboardInstance._misRenderSeq);
 				},
-				switchFormat: function(format, container, dashboardInstance) {
+				switchFormat: function (format, container, dashboardInstance) {
 					const self = this;
 					if (self.tableData && self.tableData.length > 0) {
 						self.renderMisTable(container.find("#mis-table-container"), dashboardInstance);
 					}
 					self.renderKPI(container.find("#mis-kpi-container"), dashboardInstance);
 				},
-				renderZoneFilterTags: function(container, dashboardInstance) {
+				renderZoneFilterTags: function (container, dashboardInstance) {
 					const self = this;
 					if (!self.tableData || self.tableData.length === 0) {
 						container.find("#mis-zone-filter-row").hide();
@@ -3706,7 +3709,7 @@ class DrishtiDashboard {
 						self.renderMisTable(container.find("#mis-table-container"), dashboardInstance);
 					});
 				},
-				aggregateByZone: function() {
+				aggregateByZone: function () {
 					const self = this;
 					let data = self.tableData || [];
 					const term = (self.searchTerm || "").trim().toLowerCase();
@@ -3740,7 +3743,7 @@ class DrishtiDashboard {
 						const district = row.district || "Unknown";
 						const solId = row.sol_id || "Unknown";
 						const solDesc = row.sol_desc || row.sol_id || "Unknown";
-						
+
 						if (!zoneMap[zone]) {
 							zoneMap[zone] = { zone, regions: {}, monthly_demand_amount: 0.0, monthly_collection: 0.0, branches_count: new Set() };
 						}
@@ -3751,36 +3754,36 @@ class DrishtiDashboard {
 							zoneMap[zone].regions[region].districts[district] = { district, branches: {}, monthly_demand_amount: 0.0, monthly_collection: 0.0 };
 						}
 						if (!zoneMap[zone].regions[region].districts[district].branches[solId]) {
-							zoneMap[zone].regions[region].districts[district].branches[solId] = { 
-								sol_id: solId, 
-								sol_desc: solDesc, 
-								authorizers: [], 
-								monthly_demand_amount: 0.0, 
-								monthly_collection: 0.0 
+							zoneMap[zone].regions[region].districts[district].branches[solId] = {
+								sol_id: solId,
+								sol_desc: solDesc,
+								authorizers: [],
+								monthly_demand_amount: 0.0,
+								monthly_collection: 0.0
 							};
 						}
-						
+
 						const branchObj = zoneMap[zone].regions[region].districts[district].branches[solId];
 						branchObj.authorizers.push(row);
-						
+
 						const demand = parseFloat(row.monthly_demand_amount || 0);
 						const collection = parseFloat(row.monthly_collection || 0);
-						
+
 						branchObj.monthly_demand_amount += demand;
 						branchObj.monthly_collection += collection;
-						
+
 						zoneMap[zone].regions[region].districts[district].monthly_demand_amount += demand;
 						zoneMap[zone].regions[region].districts[district].monthly_collection += collection;
-						
+
 						zoneMap[zone].regions[region].monthly_demand_amount += demand;
 						zoneMap[zone].regions[region].monthly_collection += collection;
 						zoneMap[zone].regions[region].branches_count.add(solId);
-						
+
 						zoneMap[zone].monthly_demand_amount += demand;
 						zoneMap[zone].monthly_collection += collection;
 						zoneMap[zone].branches_count.add(solId);
 					});
-					
+
 					const sortedZones = Object.keys(zoneMap).sort();
 					const result = [];
 					sortedZones.forEach(zoneName => {
@@ -3801,7 +3804,7 @@ class DrishtiDashboard {
 					});
 					return result;
 				},
-				renderMisTable: function(tableContainer, dashboardInstance) {
+				renderMisTable: function (tableContainer, dashboardInstance) {
 					const self = this;
 					const format = dashboardInstance.state.formatMode || "number";
 
@@ -3849,7 +3852,7 @@ class DrishtiDashboard {
 						const zoneExpanded = self.expandedZones[z.zone];
 						const zoneRow = z.data;
 						const zoneChecked = self.checkedRows["zone::" + z.zone];
-						
+
 						rowsHtml += `<tr class="mis-zone-row${zoneChecked ? " mis-row-checked" : ""}" data-zone="${z.zone}" data-check-id="zone::${z.zone}" style="cursor: pointer; background: #f1f5f9; border-bottom: 1px solid #cbd5e1;">
 							<td style="padding: 10px 14px; text-align: center; white-space: nowrap; width: 30px; vertical-align: middle;"><input type="checkbox" class="mis-row-check" data-check-id="zone::${z.zone}" ${zoneChecked ? "checked" : ""} style="cursor: pointer; width: 14px; height: 14px;"></td>
 							<td style="padding: 10px 14px; font-weight: 700; color: #0f172a; text-align: center; white-space: nowrap; width: 40px; font-size: 14px;">${sr}</td>
@@ -3869,7 +3872,7 @@ class DrishtiDashboard {
 							const regionKey = z.zone + "::" + region;
 							const regionExpanded = self.expandedRegions[regionKey];
 							const regionChecked = self.checkedRows[regionKey];
-							
+
 							rowsHtml += `<tr class="mis-region-row${regionChecked ? " mis-row-checked" : ""}" data-zone="${z.zone}" data-region="${region}" data-check-id="${regionKey}" style="display: ${zoneExpanded ? "table-row" : "none"}; cursor: pointer; background: #f8fafc; border-bottom: 1px solid #e2e8f0;">
 								<td style="padding: 8px 14px; text-align: center; white-space: nowrap; vertical-align: middle;"><input type="checkbox" class="mis-row-check" data-check-id="${regionKey}" ${regionChecked ? "checked" : ""} style="cursor: pointer; width: 14px; height: 14px;"></td>
 								<td style="padding: 8px 14px; color: #64748b; text-align: center; white-space: nowrap; font-size: 14px;"></td>
@@ -3927,7 +3930,7 @@ class DrishtiDashboard {
 										const authBg = ai % 2 === 0 ? "#fafafa" : "#f5f5f5";
 										const authKey = branchKey + "::" + auth.auth_id;
 										const authChecked = self.checkedRows[authKey];
-										
+
 										rowsHtml += `<tr class="mis-auth-row${authChecked ? " mis-row-checked" : ""}" data-zone="${z.zone}" data-region="${region}" data-district="${district}" data-branch="${branch.sol_id}" data-check-id="${authKey}" style="display: ${showAuth ? "table-row" : "none"}; background: ${authBg}; border-bottom: 1px solid #f1f5f9;">
 											<td style="padding: 6px 14px; text-align: center; white-space: nowrap; vertical-align: middle;"><input type="checkbox" class="mis-row-check" data-check-id="${authKey}" ${authChecked ? "checked" : ""} style="cursor: pointer; width: 14px; height: 14px;"></td>
 											<td style="padding: 6px 14px; color: #94a3b8; text-align: center; white-space: nowrap; font-size: 14px;"></td>
@@ -4048,7 +4051,8 @@ class DrishtiDashboard {
 					});
 				}
 			},
-			{	id: "agent_wise_demand_collection",
+			{
+				id: "agent_wise_demand_collection",
 				name: "Agent Wise Demand Vs Collection Report",
 				tableData: [],
 				expandedZones: {},
@@ -4060,7 +4064,7 @@ class DrishtiDashboard {
 				searchTerm: "",
 				allExpanded: false,
 				selectedMisZones: [],
-				render: function(container, dashboardInstance, seq) {
+				render: function (container, dashboardInstance, seq) {
 					const self = this;
 					container.html(`
 						<div style="display: flex; gap: 8px; align-items: center; margin-bottom: 10px;" id="mis-controls">
@@ -4097,13 +4101,13 @@ class DrishtiDashboard {
 
 					frappe.call({
 						method: "custom_report.custom_report.page.sahayog_dashboard.sahayog_dashboard.get_mis_filter_options",
-						callback: function(fo) {
+						callback: function (fo) {
 							if (dashboardInstance._misRenderSeq !== seq) return;
 							const fOpts = fo.message || {};
 							frappe.call({
 								method: "custom_report.custom_report.page.sahayog_dashboard.sahayog_dashboard.get_agent_wise_demand_collection_data",
 								args: { selected_date: dashboardInstance.state.selectedDate },
-								callback: function(r) {
+								callback: function (r) {
 									if (dashboardInstance._misRenderSeq !== seq) return;
 									container.find("#mis-loading").hide();
 									if (r.message && r.message.length) {
@@ -4120,7 +4124,7 @@ class DrishtiDashboard {
 					});
 					self.attachReportEventHandlers(container, dashboardInstance);
 				},
-				attachReportEventHandlers: function(container, dashboardInstance) {
+				attachReportEventHandlers: function (container, dashboardInstance) {
 					const self = this;
 					container.off("click", ".mis-format-btn").on("click", ".mis-format-btn", function () {
 						const format = $(this).data("format");
@@ -4170,7 +4174,7 @@ class DrishtiDashboard {
 						self.refetchData(container, dashboardInstance);
 					});
 				},
-				renderKPI: function(container, dashboardInstance) {
+				renderKPI: function (container, dashboardInstance) {
 					const self = this;
 					const data = self.tableData || [];
 					const totalDemand = data.reduce((s, r) => s + (parseFloat(r.monthly_demand_amount) || 0.0), 0.0);
@@ -4220,7 +4224,7 @@ class DrishtiDashboard {
 						</div>
 					`);
 				},
-				refetchData: function(container, dashboardInstance) {
+				refetchData: function (container, dashboardInstance) {
 					const self = this;
 					self.tableData = [];
 					self.expandedZones = {};
@@ -4234,14 +4238,14 @@ class DrishtiDashboard {
 					dashboardInstance._misRenderSeq = (dashboardInstance._misRenderSeq || 0) + 1;
 					self.render(container, dashboardInstance, dashboardInstance._misRenderSeq);
 				},
-				switchFormat: function(format, container, dashboardInstance) {
+				switchFormat: function (format, container, dashboardInstance) {
 					const self = this;
 					if (self.tableData && self.tableData.length > 0) {
 						self.renderMisTable(container.find("#mis-table-container"), dashboardInstance);
 					}
 					self.renderKPI(container.find("#mis-kpi-container"), dashboardInstance);
 				},
-				renderZoneFilterTags: function(container, dashboardInstance) {
+				renderZoneFilterTags: function (container, dashboardInstance) {
 					const self = this;
 					if (!self.tableData || self.tableData.length === 0) {
 						container.find("#mis-zone-filter-row").hide();
@@ -4273,7 +4277,7 @@ class DrishtiDashboard {
 						self.renderMisTable(container.find("#mis-table-container"), dashboardInstance);
 					});
 				},
-				aggregateByZone: function() {
+				aggregateByZone: function () {
 					const self = this;
 					let data = self.tableData || [];
 					const term = (self.searchTerm || "").trim().toLowerCase();
@@ -4309,7 +4313,7 @@ class DrishtiDashboard {
 						const district = row.district || "Unknown";
 						const solId = row.sol_id || "Unknown";
 						const solDesc = row.sol_desc || row.sol_id || "Unknown";
-						
+
 						if (!zoneMap[zone]) {
 							zoneMap[zone] = { zone, regions: {}, monthly_demand_amount: 0.0, monthly_collection: 0.0, branches_count: new Set() };
 						}
@@ -4320,36 +4324,36 @@ class DrishtiDashboard {
 							zoneMap[zone].regions[region].districts[district] = { district, branches: {}, monthly_demand_amount: 0.0, monthly_collection: 0.0 };
 						}
 						if (!zoneMap[zone].regions[region].districts[district].branches[solId]) {
-							zoneMap[zone].regions[region].districts[district].branches[solId] = { 
-								sol_id: solId, 
-								sol_desc: solDesc, 
-								agents: [], 
-								monthly_demand_amount: 0.0, 
-								monthly_collection: 0.0 
+							zoneMap[zone].regions[region].districts[district].branches[solId] = {
+								sol_id: solId,
+								sol_desc: solDesc,
+								agents: [],
+								monthly_demand_amount: 0.0,
+								monthly_collection: 0.0
 							};
 						}
-						
+
 						const branchObj = zoneMap[zone].regions[region].districts[district].branches[solId];
 						branchObj.agents.push(row);
-						
+
 						const demand = parseFloat(row.monthly_demand_amount || 0);
 						const collection = parseFloat(row.monthly_collection || 0);
-						
+
 						branchObj.monthly_demand_amount += demand;
 						branchObj.monthly_collection += collection;
-						
+
 						zoneMap[zone].regions[region].districts[district].monthly_demand_amount += demand;
 						zoneMap[zone].regions[region].districts[district].monthly_collection += collection;
-						
+
 						zoneMap[zone].regions[region].monthly_demand_amount += demand;
 						zoneMap[zone].regions[region].monthly_collection += collection;
 						zoneMap[zone].regions[region].branches_count.add(solId);
-						
+
 						zoneMap[zone].monthly_demand_amount += demand;
 						zoneMap[zone].monthly_collection += collection;
 						zoneMap[zone].branches_count.add(solId);
 					});
-					
+
 					const sortedZones = Object.keys(zoneMap).sort();
 					const result = [];
 					sortedZones.forEach(zoneName => {
@@ -4370,7 +4374,7 @@ class DrishtiDashboard {
 					});
 					return result;
 				},
-				renderMisTable: function(tableContainer, dashboardInstance) {
+				renderMisTable: function (tableContainer, dashboardInstance) {
 					const self = this;
 					const format = dashboardInstance.state.formatMode || "number";
 
@@ -4418,7 +4422,7 @@ class DrishtiDashboard {
 						const zoneExpanded = self.expandedZones[z.zone];
 						const zoneRow = z.data;
 						const zoneChecked = self.checkedRows["zone::" + z.zone];
-						
+
 						rowsHtml += `<tr class="mis-zone-row${zoneChecked ? " mis-row-checked" : ""}" data-zone="${z.zone}" data-check-id="zone::${z.zone}" style="cursor: pointer; background: #f1f5f9; border-bottom: 1px solid #cbd5e1;">
 							<td style="padding: 10px 14px; text-align: center; white-space: nowrap; width: 30px; vertical-align: middle;"><input type="checkbox" class="mis-row-check" data-check-id="zone::${z.zone}" ${zoneChecked ? "checked" : ""} style="cursor: pointer; width: 14px; height: 14px;"></td>
 							<td style="padding: 10px 14px; font-weight: 700; color: #0f172a; text-align: center; white-space: nowrap; width: 40px; font-size: 14px;">${sr}</td>
@@ -4440,7 +4444,7 @@ class DrishtiDashboard {
 							const regionKey = z.zone + "::" + region;
 							const regionExpanded = self.expandedRegions[regionKey];
 							const regionChecked = self.checkedRows[regionKey];
-							
+
 							rowsHtml += `<tr class="mis-region-row${regionChecked ? " mis-row-checked" : ""}" data-zone="${z.zone}" data-region="${region}" data-check-id="${regionKey}" style="display: ${zoneExpanded ? "table-row" : "none"}; cursor: pointer; background: #f8fafc; border-bottom: 1px solid #e2e8f0;">
 								<td style="padding: 8px 14px; text-align: center; white-space: nowrap; vertical-align: middle;"><input type="checkbox" class="mis-row-check" data-check-id="${regionKey}" ${regionChecked ? "checked" : ""} style="cursor: pointer; width: 14px; height: 14px;"></td>
 								<td style="padding: 8px 14px; color: #64748b; text-align: center; white-space: nowrap; font-size: 14px;"></td>
@@ -4661,7 +4665,8 @@ class DrishtiDashboard {
 					});
 				}
 			},
-			{	id: "maturity_tracker",
+			{
+				id: "maturity_tracker",
 				name: "Maturity Tracker",
 				tableData: [],
 				expandedZones: {},
@@ -5070,7 +5075,7 @@ class DrishtiDashboard {
 						const zoneExpanded = self.expandedZones[z.zone];
 						const zoneRow = z.data;
 						const zoneChecked = self.checkedRows["zone::" + z.zone];
-						
+
 						rowsHtml += `<tr class="mis-zone-row${zoneChecked ? " mis-row-checked" : ""}" data-zone="${z.zone}" data-check-id="zone::${z.zone}" style="cursor: pointer; background: #f1f5f9; border-bottom: 1px solid #cbd5e1;">
 							<td style="padding: 10px 14px; text-align: center; white-space: nowrap; width: 30px; vertical-align: middle;"><input type="checkbox" class="mis-row-check" data-check-id="zone::${z.zone}" ${zoneChecked ? "checked" : ""} style="cursor: pointer; width: 14px; height: 14px;"></td>
 							<td style="padding: 10px 14px; font-weight: 700; color: #0f172a; text-align: center; white-space: nowrap; width: 40px; font-size: 14px;">${sr}</td>
@@ -5093,7 +5098,7 @@ class DrishtiDashboard {
 							const regionKey = z.zone + "::" + region;
 							const regionExpanded = self.expandedRegions[regionKey];
 							const regionChecked = self.checkedRows[regionKey];
-							
+
 							rowsHtml += `<tr class="mis-region-row${regionChecked ? " mis-row-checked" : ""}" data-zone="${z.zone}" data-region="${region}" data-check-id="${regionKey}" style="display: ${zoneExpanded ? "table-row" : "none"}; cursor: pointer; background: #f8fafc; border-bottom: 1px solid #e2e8f0;">
 								<td style="padding: 8px 14px; text-align: center; white-space: nowrap; vertical-align: middle;"><input type="checkbox" class="mis-row-check" data-check-id="${regionKey}" ${regionChecked ? "checked" : ""} style="cursor: pointer; width: 14px; height: 14px;"></td>
 								<td style="padding: 8px 14px; color: #64748b; text-align: center; white-space: nowrap; font-size: 14px;"></td>
@@ -5161,7 +5166,7 @@ class DrishtiDashboard {
 											const recBg = ai % 2 === 0 ? "#fafafa" : "#f5f5f5";
 											const recKey = branchKey + "::" + (rec.cif_id || ai);
 											const recChecked = self.checkedRows[recKey];
-											
+
 											rowsHtml += `<tr class="mis-rec-row${recChecked ? " mis-row-checked" : ""}" data-zone="${z.zone}" data-region="${region}" data-district="${district}" data-branch="${branch.sol_id}" data-check-id="${recKey}" style="display: ${showRecord ? "table-row" : "none"}; background: ${recBg}; border-bottom: 1px solid #f1f5f9;">
 												<td style="padding: 6px 14px; text-align: center; white-space: nowrap; vertical-align: middle;"><input type="checkbox" class="mis-row-check" data-check-id="${recKey}" ${recChecked ? "checked" : ""} style="cursor: pointer; width: 14px; height: 14px;"></td>
 												<td style="padding: 6px 14px; color: #94a3b8; text-align: center; white-space: nowrap; font-size: 14px;"></td>
@@ -5445,7 +5450,7 @@ class DrishtiDashboard {
 					if (!self.pageSize) self.pageSize = 50;
 
 					if (self.filterQuery) {
-						data = data.filter(r => 
+						data = data.filter(r =>
 							(r.agent_code || r.rm_id || "").toLowerCase().includes(self.filterQuery) ||
 							(r.agent_name || r.rm_name || "").toLowerCase().includes(self.filterQuery)
 						);
@@ -5470,65 +5475,106 @@ class DrishtiDashboard {
 					let grandTotalComm = 0;
 					let totalActive = 0;
 					let totalInactive = 0;
+					let rddsActive = 0;
+					let rddsInactive = 0;
+					let dddsActive = 0;
+					let dddsInactive = 0;
 
 					self.tableData.forEach(r => {
 						grandTotalCust += (r.total_customer ?? r.total_records ?? 0);
 						grandTotalComm += (r.total_commission || 0);
 
 						const st = (r.agent_status || "Inactive").trim().toLowerCase();
-						if (st === "active" || st === "live") {
+						const isActive = (st === "active" || st === "live");
+						if (isActive) {
 							totalActive++;
 						} else {
 							totalInactive++;
+						}
+						const code = (r.agent_code || r.rm_id || "").toUpperCase();
+						if (code.startsWith("RDDS")) {
+							if (isActive) { rddsActive++; } else { rddsInactive++; }
+						} else if (code.startsWith("DDDS")) {
+							if (isActive) { dddsActive++; } else { dddsInactive++; }
 						}
 					});
 
 					const totalAgents = totalActive + totalInactive;
 
 					const kpiCardsHtml = `
-						<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-bottom: 14px;">
-							<!-- Card 1: Total Agents (Blue Theme Card) -->
-							<div style="background: #eff6ff; border: 1px solid #93c5fd; border-radius: 8px; padding: 12px 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); display: flex; align-items: center; justify-content: space-between;">
-								<div>
-									<div style="font-size: 11px; font-weight: 700; color: #1e40af; text-transform: uppercase; letter-spacing: 0.5px;">Total Agents</div>
-									<div style="font-size: 22px; font-weight: 800; color: #1d4ed8; margin-top: 2px;">${fmtNum(totalAgents)}</div>
-								</div>
-								<div style="background: #dbeafe; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px;">
-									👥
+						<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; margin-bottom: 14px;">
+							<!-- Card 1: Total VS & SS -->
+							<div style="background: #ffffff; border: 1px solid #e2e8f0; border-top: 3px solid #417d81; border-radius: 10px; padding: 14px 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.06);">
+								<div style="font-size: 11px; font-weight: 800; color: #0f172a; text-transform: uppercase; letter-spacing: 0.6px; text-align: center;">Total VS & SS</div>
+								<div style="display: flex; align-items: stretch; justify-content: center; gap: 12px; margin-top: 10px; text-align: center;">
+									<div style="flex: 1;">
+										<div style="font-size: 10px; font-weight: 700; color: #64748b; text-transform: uppercase;">Active</div>
+										<div style="font-size: 22px; font-weight: 800; color: #15803d; line-height: 1.2;">${fmtNum(totalActive)}</div>
+									</div>
+									<div style="width: 1px; background: #e2e8f0;"></div>
+									<div style="flex: 1;">
+										<div style="font-size: 10px; font-weight: 700; color: #64748b; text-transform: uppercase;">Inactive</div>
+										<div style="font-size: 22px; font-weight: 800; color: #dc2626; line-height: 1.2;">${fmtNum(totalInactive)}</div>
+									</div>
+									<div style="display: flex; align-items: center; font-size: 18px; font-weight: 800; color: #94a3b8;">=</div>
+									<div style="flex: 1; padding: 2px 4px;">
+										<div style="font-size: 10px; font-weight: 700; color: #64748b; text-transform: uppercase;">Total</div>
+										<div style="font-size: 22px; font-weight: 800; color: #0f172a; line-height: 1.2;">${fmtNum(totalActive + totalInactive)}</div>
+									</div>
 								</div>
 							</div>
 
-							<!-- Card 2: Active Agents (Green Card) -->
-							<div style="background: #f0fdf4; border: 1px solid #86efac; border-radius: 8px; padding: 12px 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); display: flex; align-items: center; justify-content: space-between;">
-								<div>
-									<div style="font-size: 11px; font-weight: 700; color: #166534; text-transform: uppercase; letter-spacing: 0.5px;">Total Active Agents</div>
-									<div style="font-size: 22px; font-weight: 800; color: #15803d; margin-top: 2px;">${fmtNum(totalActive)}</div>
-								</div>
-								<div style="background: #dcfce7; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px;">
-									🟢
+							<!-- Card 2: Total VS = DDDS only -->
+							<div style="background: #ffffff; border: 1px solid #e2e8f0; border-top: 3px solid #15803d; border-radius: 10px; padding: 14px 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.06);">
+								<div style="font-size: 11px; font-weight: 800; color: #0f172a; text-transform: uppercase; letter-spacing: 0.6px; text-align: center;">Total VS</div>
+								<div style="display: flex; align-items: stretch; justify-content: center; gap: 12px; margin-top: 10px; text-align: center;">
+									<div style="flex: 1;">
+										<div style="font-size: 10px; font-weight: 700; color: #64748b; text-transform: uppercase;">Active</div>
+										<div style="font-size: 22px; font-weight: 800; color: #15803d; line-height: 1.2;">${fmtNum(dddsActive)}</div>
+									</div>
+									<div style="width: 1px; background: #e2e8f0;"></div>
+									<div style="flex: 1;">
+										<div style="font-size: 10px; font-weight: 700; color: #64748b; text-transform: uppercase;">Inactive</div>
+										<div style="font-size: 22px; font-weight: 800; color: #dc2626; line-height: 1.2;">${fmtNum(dddsInactive)}</div>
+									</div>
+									<div style="display: flex; align-items: center; font-size: 18px; font-weight: 800; color: #94a3b8;">=</div>
+									<div style="flex: 1; padding: 2px 4px;">
+										<div style="font-size: 10px; font-weight: 700; color: #64748b; text-transform: uppercase;">Total</div>
+										<div style="font-size: 22px; font-weight: 800; color: #0f172a; line-height: 1.2;">${fmtNum(dddsActive + dddsInactive)}</div>
+									</div>
 								</div>
 							</div>
 
-							<!-- Card 3: Inactive Agents (Red Card) -->
-							<div style="background: #fef2f2; border: 1px solid #fca5a5; border-radius: 8px; padding: 12px 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); display: flex; align-items: center; justify-content: space-between;">
-								<div>
-									<div style="font-size: 11px; font-weight: 700; color: #991b1b; text-transform: uppercase; letter-spacing: 0.5px;">Total Inactive Agents</div>
-									<div style="font-size: 22px; font-weight: 800; color: #dc2626; margin-top: 2px;">${fmtNum(totalInactive)}</div>
-								</div>
-								<div style="background: #fee2e2; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px;">
-									🔴
+							<!-- Card 3: Total SS = RDDS only -->
+							<div style="background: #ffffff; border: 1px solid #e2e8f0; border-top: 3px solid #b45309; border-radius: 10px; padding: 14px 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.06);">
+								<div style="font-size: 11px; font-weight: 800; color: #0f172a; text-transform: uppercase; letter-spacing: 0.6px; text-align: center;">Total SS</div>
+								<div style="display: flex; align-items: stretch; justify-content: center; gap: 12px; margin-top: 10px; text-align: center;">
+									<div style="flex: 1;">
+										<div style="font-size: 10px; font-weight: 700; color: #64748b; text-transform: uppercase;">Active</div>
+										<div style="font-size: 22px; font-weight: 800; color: #15803d; line-height: 1.2;">${fmtNum(rddsActive)}</div>
+									</div>
+									<div style="width: 1px; background: #e2e8f0;"></div>
+									<div style="flex: 1;">
+										<div style="font-size: 10px; font-weight: 700; color: #64748b; text-transform: uppercase;">Inactive</div>
+										<div style="font-size: 22px; font-weight: 800; color: #dc2626; line-height: 1.2;">${fmtNum(rddsInactive)}</div>
+									</div>
+									<div style="display: flex; align-items: center; font-size: 18px; font-weight: 800; color: #94a3b8;">=</div>
+									<div style="flex: 1; padding: 2px 4px;">
+										<div style="font-size: 10px; font-weight: 700; color: #64748b; text-transform: uppercase;">Total</div>
+										<div style="font-size: 22px; font-weight: 800; color: #0f172a; line-height: 1.2;">${fmtNum(rddsActive + rddsInactive)}</div>
+									</div>
 								</div>
 							</div>
 
 							${canViewComm ? `
-							<!-- Card 4: Total Commission (Primary Theme Card) -->
-							<div style="background: rgba(65, 125, 129, 0.05); border: 1px solid rgba(65, 125, 129, 0.3); border-radius: 8px; padding: 12px 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); display: flex; align-items: center; justify-content: space-between;">
-								<div>
-									<div style="font-size: 11px; font-weight: 700; color: #417d81; text-transform: uppercase; letter-spacing: 0.5px;">Total Commission</div>
-									<div style="font-size: 22px; font-weight: 800; color: #417d81; margin-top: 2px;">${fmtAmt(grandTotalComm)}</div>
-								</div>
-								<div style="background: rgba(65, 125, 129, 0.12); width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px;">
-									💰
+							<!-- Card 4: Total Commission -->
+							<div style="background: #ffffff; border: 1px solid #e2e8f0; border-top: 3px solid #417d81; border-radius: 10px; padding: 14px 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.06);">
+								<div style="font-size: 11px; font-weight: 800; color: #0f172a; text-transform: uppercase; letter-spacing: 0.6px; text-align: center;">Total Commission</div>
+								<div style="display: flex; align-items: stretch; justify-content: center; margin-top: 10px; text-align: center;">
+									<div style="flex: 1; padding: 2px 4px;">
+										<div style="font-size: 10px; font-weight: 700; color: #64748b; text-transform: uppercase;">Amount</div>
+										<div style="font-size: 22px; font-weight: 800; color: #417d81; line-height: 1.2;">${fmtAmt(grandTotalComm)}</div>
+									</div>
 								</div>
 							</div>
 							` : ''}
@@ -5809,7 +5855,7 @@ class DrishtiDashboard {
 					});
 				},
 
-				renderZoneFilterTags: function(container, dashboardInstance) {
+				renderZoneFilterTags: function (container, dashboardInstance) {
 					const self = this;
 					if (!self.tableData || self.tableData.length === 0) {
 						container.find("#mis-zone-filter-row").hide();
@@ -6828,28 +6874,28 @@ class DrishtiDashboard {
 			<th style="text-align: right; width: 110px;">Pending</th>
 		`;
 
-		const rowsHtml = [1,2,3,4,5,6].map(i => isPta ? `
-			<tr style="background: ${i%2===0 ? '#f8fafc' : '#fff'};">
+		const rowsHtml = [1, 2, 3, 4, 5, 6].map(i => isPta ? `
+			<tr style="background: ${i % 2 === 0 ? '#f8fafc' : '#fff'};">
 				<td><div class="mis-skeleton-pulse" style="width: 14px; height: 14px; margin: auto;"></div></td>
 				<td><div class="mis-skeleton-pulse" style="width: 20px; margin: auto;"></div></td>
 				<td><div class="mis-skeleton-pulse" style="width: 50px; margin: auto;"></div></td>
-				<td><div class="mis-skeleton-pulse" style="width: ${140 + Math.random()*60}px;"></div></td>
+				<td><div class="mis-skeleton-pulse" style="width: ${140 + Math.random() * 60}px;"></div></td>
 				<td><div class="mis-skeleton-pulse" style="width: 40px; margin-left: auto;"></div></td>
-				<td><div class="mis-skeleton-pulse" style="width: ${70 + Math.random()*30}px; margin-left: auto;"></div></td>
-				<td><div class="mis-skeleton-pulse" style="width: ${70 + Math.random()*30}px; margin-left: auto;"></div></td>
+				<td><div class="mis-skeleton-pulse" style="width: ${70 + Math.random() * 30}px; margin-left: auto;"></div></td>
+				<td><div class="mis-skeleton-pulse" style="width: ${70 + Math.random() * 30}px; margin-left: auto;"></div></td>
 				<td><div class="mis-skeleton-pulse" style="width: 45px; margin-left: auto;"></div></td>
-				<td><div class="mis-skeleton-pulse" style="width: ${60 + Math.random()*30}px; margin-left: auto;"></div></td>
+				<td><div class="mis-skeleton-pulse" style="width: ${60 + Math.random() * 30}px; margin-left: auto;"></div></td>
 				<td><div class="mis-skeleton-pulse" style="width: 45px; margin-left: auto;"></div></td>
 			</tr>
 		` : `
-			<tr style="background: ${i%2===0 ? '#f8fafc' : '#fff'};">
+			<tr style="background: ${i % 2 === 0 ? '#f8fafc' : '#fff'};">
 				<td><div class="mis-skeleton-pulse" style="width: 14px; height: 14px; margin: auto;"></div></td>
 				<td><div class="mis-skeleton-pulse" style="width: 20px; margin: auto;"></div></td>
-				<td><div class="mis-skeleton-pulse" style="width: ${120 + Math.random()*60}px;"></div></td>
+				<td><div class="mis-skeleton-pulse" style="width: ${120 + Math.random() * 60}px;"></div></td>
 				<td><div class="mis-skeleton-pulse" style="width: 30px; margin: auto;"></div></td>
-				<td><div class="mis-skeleton-pulse" style="width: ${50 + Math.random()*30}px; margin-left: auto;"></div></td>
-				<td><div class="mis-skeleton-pulse" style="width: ${60 + Math.random()*30}px; margin-left: auto;"></div></td>
-				<td><div class="mis-skeleton-pulse" style="width: ${50 + Math.random()*20}px; margin-left: auto;"></div></td>
+				<td><div class="mis-skeleton-pulse" style="width: ${50 + Math.random() * 30}px; margin-left: auto;"></div></td>
+				<td><div class="mis-skeleton-pulse" style="width: ${60 + Math.random() * 30}px; margin-left: auto;"></div></td>
+				<td><div class="mis-skeleton-pulse" style="width: ${50 + Math.random() * 20}px; margin-left: auto;"></div></td>
 			</tr>
 		`).join('');
 
@@ -7042,11 +7088,11 @@ class DrishtiDashboard {
 							<span style="background: ${typeBadgeBg}; color: ${typeBadgeColor}; border: 1px solid ${typeBadgeBorder}; padding: 2px 8px; border-radius: 12px; font-weight: 700;">${node.type}</span>
 						</td>
 						${metricCols.map(col => {
-							const val = node[col.key] || 0;
-							const formatted = col.format === 'amt' ? fmtAmt(val) : fmtNum(val);
-							const style = col.style || '';
-							return `<td style="padding: 8px 12px; text-align: right; font-size: 12px; font-weight: 600; ${style}">${formatted}</td>`;
-						}).join('')}
+					const val = node[col.key] || 0;
+					const formatted = col.format === 'amt' ? fmtAmt(val) : fmtNum(val);
+					const style = col.style || '';
+					return `<td style="padding: 8px 12px; text-align: right; font-size: 12px; font-weight: 600; ${style}">${formatted}</td>`;
+				}).join('')}
 					</tr>
 				`;
 
@@ -7105,11 +7151,11 @@ class DrishtiDashboard {
 						<tr style="background: rgba(65, 125, 129, 0.08); color: #1e293b; font-weight: 700; position: sticky; bottom: 0; z-index: 2; border-top: 2px solid #417d81;">
 							<td colspan="3" style="padding: 10px 12px; text-align: left; font-size: 12px; color: #417d81;">GRAND TOTAL (${fmtNum(data.length)} BRANCHES)</td>
 							${metricCols.map(col => {
-								const val = grandTotal[col.key] || 0;
-								const formatted = col.format === 'amt' ? fmtAmt(val) : fmtNum(val);
-								const style = col.style || '';
-								return `<td style="padding: 10px 12px; text-align: right; font-size: 12px; font-weight: 800; ${style}">${formatted}</td>`;
-							}).join('')}
+			const val = grandTotal[col.key] || 0;
+			const formatted = col.format === 'amt' ? fmtAmt(val) : fmtNum(val);
+			const style = col.style || '';
+			return `<td style="padding: 10px 12px; text-align: right; font-size: 12px; font-weight: 800; ${style}">${formatted}</td>`;
+		}).join('')}
 						</tr>
 					</tfoot>
 				</table>
@@ -8393,9 +8439,9 @@ class DrishtiDashboard {
 						</button>
 						<div class="mis-dropdown-menu" style="display: none; position: absolute; top: 100%; left: 0; min-width: 280px; background: #fff; border: 1px solid #cbd5e1; border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.12); z-index: 100; padding: 4px; margin-top: 4px;">
 							${report.children.map(childId => {
-								const child = self.misReportsList.find(r => r.id === childId);
-								return `<button class="mis-dropdown-item ${childId === activeReportId ? "active" : ""}" data-report-id="${childId}">${child.name}</button>`;
-							}).join("")}
+					const child = self.misReportsList.find(r => r.id === childId);
+					return `<button class="mis-dropdown-item ${childId === activeReportId ? "active" : ""}" data-report-id="${childId}">${child.name}</button>`;
+				}).join("")}
 						</div>
 					</div>
 				`);
@@ -8710,8 +8756,7 @@ class DrishtiDashboard {
 			const pct = zonePercentages[zone];
 
 			container.append(`
-                <button class="filter-tag zone-tag ${
-					isActive ? "active" : ""
+                <button class="filter-tag zone-tag ${isActive ? "active" : ""
 				}" data-zone="${zone}">
                     <span class="zone-tag-content">
                         ${displayName}
@@ -8779,8 +8824,7 @@ class DrishtiDashboard {
 		}
 
 		container.append(`
-            <button class="filter-tag category-tag all-tag ${
-				allCategoriesActive ? "active" : ""
+            <button class="filter-tag category-tag all-tag ${allCategoriesActive ? "active" : ""
 			}" data-category="all" style="--fill-pct: ${percentages["all"]}%; --fill-color: #cbd5e133; color: #475569;">
                 <span class="category-tag-content">
                     All
@@ -10801,8 +10845,8 @@ class DrishtiDashboard {
 			                <td>
 								<div style="display: flex; align-items: center; gap: 8px; justify-content: center;">
 									<span class="pct-value" style="color: ${this.getPctColor(
-										mdata.percentage,
-									)}; min-width: 45px; text-align: right;">${mdata.percentage.toFixed(2)}%</span>
+					mdata.percentage,
+				)}; min-width: 45px; text-align: right;">${mdata.percentage.toFixed(2)}%</span>
 									${this.renderProgressBar(mdata.percentage)}
 								</div>
 							</td>
@@ -10810,8 +10854,8 @@ class DrishtiDashboard {
 			                <td>
 								<div style="display: flex; align-items: center; gap: 8px; justify-content: center;">
 									<span class="pct-value" style="color: ${this.getPctColor(
-										100 - gapPct,
-									)}; min-width: 45px; text-align: right;">${gapPct.toFixed(2)}%</span>
+					100 - gapPct,
+				)}; min-width: 45px; text-align: right;">${gapPct.toFixed(2)}%</span>
 									${this.renderProgressBar(gapPct, this.getPctColor(100 - gapPct))}
 								</div>
 							</td>
@@ -10832,9 +10876,8 @@ class DrishtiDashboard {
 
 		const branchCount = firstMonthData?.branches || 0;
 
-		let html = `<tr class="region-detail-row zone-table-row${checked}" data-zone="${zoneName}" data-region="${regionItem.region}" data-region-key="${regionKey}" style="display: ${
-			isZoneExpanded ? "table-row" : "none"
-		}; border-left: 4px solid #417d81; cursor: pointer;">`;
+		let html = `<tr class="region-detail-row zone-table-row${checked}" data-zone="${zoneName}" data-region="${regionItem.region}" data-region-key="${regionKey}" style="display: ${isZoneExpanded ? "table-row" : "none"
+			}; border-left: 4px solid #417d81; cursor: pointer;">`;
 
 		html += `<td style="text-align: center;"><input type="checkbox" class="zone-row-check" data-check-id="${regionKey}"${checked} style="cursor: pointer;"></td>`;
 		html += `<td class="sr-col"></td>`;
@@ -10853,8 +10896,8 @@ class DrishtiDashboard {
 			                <td>
 								<div style="display: flex; align-items: center; gap: 8px; justify-content: center;">
 									<span class="pct-value" style="color: ${this.getPctColor(
-										mdata.percentage,
-									)}; min-width: 45px; text-align: right;">${mdata.percentage.toFixed(2)}%</span>
+					mdata.percentage,
+				)}; min-width: 45px; text-align: right;">${mdata.percentage.toFixed(2)}%</span>
 									${this.renderProgressBar(mdata.percentage)}
 								</div>
 							</td>
@@ -10862,8 +10905,8 @@ class DrishtiDashboard {
 			                <td>
 								<div style="display: flex; align-items: center; gap: 8px; justify-content: center;">
 									<span class="pct-value" style="color: ${this.getPctColor(
-										100 - gapPct,
-									)}; min-width: 45px; text-align: right;">${gapPct.toFixed(2)}%</span>
+					100 - gapPct,
+				)}; min-width: 45px; text-align: right;">${gapPct.toFixed(2)}%</span>
 									${this.renderProgressBar(gapPct, this.getPctColor(100 - gapPct))}
 								</div>
 							</td>
@@ -10885,9 +10928,8 @@ class DrishtiDashboard {
 
 		const branchCount = firstMonthData?.branches || 0;
 
-		let html = `<tr class="district-detail-row zone-table-row${checked}" data-zone="${zoneName}" data-region="${districtItem.region}" data-district="${districtItem.district}" data-district-key="${districtKey}" style="display: ${
-			isZoneExpanded && isRegionExpanded ? "table-row" : "none"
-		};">`;
+		let html = `<tr class="district-detail-row zone-table-row${checked}" data-zone="${zoneName}" data-region="${districtItem.region}" data-district="${districtItem.district}" data-district-key="${districtKey}" style="display: ${isZoneExpanded && isRegionExpanded ? "table-row" : "none"
+			};">`;
 
 		html += `<td style="text-align: center;"><input type="checkbox" class="zone-row-check" data-check-id="${districtKey}"${checked} style="cursor: pointer;"></td>`;
 		html += `<td class="sr-col"></td>`;
@@ -10906,8 +10948,8 @@ class DrishtiDashboard {
 			                <td>
 								<div style="display: flex; align-items: center; gap: 8px; justify-content: center;">
 									<span class="pct-value" style="color: ${this.getPctColor(
-										mdata.percentage,
-									)}; min-width: 45px; text-align: right;">${mdata.percentage.toFixed(2)}%</span>
+					mdata.percentage,
+				)}; min-width: 45px; text-align: right;">${mdata.percentage.toFixed(2)}%</span>
 									${this.renderProgressBar(mdata.percentage)}
 								</div>
 							</td>
@@ -10915,8 +10957,8 @@ class DrishtiDashboard {
 			                <td>
 								<div style="display: flex; align-items: center; gap: 8px; justify-content: center;">
 									<span class="pct-value" style="color: ${this.getPctColor(
-										100 - gapPct,
-									)}; min-width: 45px; text-align: right;">${gapPct.toFixed(2)}%</span>
+					100 - gapPct,
+				)}; min-width: 45px; text-align: right;">${gapPct.toFixed(2)}%</span>
 									${this.renderProgressBar(gapPct, this.getPctColor(100 - gapPct))}
 								</div>
 							</td>
@@ -11645,14 +11687,12 @@ class DrishtiDashboard {
 			const percentage = totalBranches > 0 ? (count / totalBranches) * 100 : 0;
 
 			html += `
-            <tr class="category-row-redesigned" data-category="${catName}" style="border-left: 5px solid ${
-				config.color
-			};">
+            <tr class="category-row-redesigned" data-category="${catName}" style="border-left: 5px solid ${config.color
+				};">
                 <td class="cat-name-cell" style="--fill-pct: ${percentage}%; --fill-color: ${config.color}26;">
                     <span class="category-toggle">${isExpanded ? "▼" : "▶"}</span>
-                    <span class="cat-grade" style="background-color: ${config.color}; font-weight: 800;">${
-						config.grade
-					}</span>
+                    <span class="cat-grade" style="background-color: ${config.color}; font-weight: 800;">${config.grade
+				}</span>
                     <div class="cat-name-wrapper">
                         <span style="color: ${config.color}; font-weight: 700; font-size: 14px;">${catName}</span>
                         <span class="category-percentage-share" style="color: ${config.color}; font-weight: 700; opacity: 0.85;">• ${Math.round(percentage)}%</span>
@@ -11666,17 +11706,15 @@ class DrishtiDashboard {
                     <div class="movement-summary">
                         ${upCount > 0 ? `<span class="mov-up">↑ ${upCount}</span>` : ""}
                         ${downCount > 0 ? `<span class="mov-down">↓ ${downCount}</span>` : ""}
-                        ${
-							upCount === 0 && downCount === 0
-								? `<span class="mov-neutral">-</span>`
-								: ""
-						}
+                        ${upCount === 0 && downCount === 0
+					? `<span class="mov-neutral">-</span>`
+					: ""
+				}
                     </div>
                 </td>
                 <td class="health-cell" style="color: ${config.color}; font-weight: 700;">
-                    <span class="health-indicator" style="background-color: ${
-						config.color
-					}; box-shadow: 0 0 6px ${config.color}80;"></span>
+                    <span class="health-indicator" style="background-color: ${config.color
+				}; box-shadow: 0 0 6px ${config.color}80;"></span>
                     ${config.health}
                 </td>
             </tr>
@@ -11690,25 +11728,24 @@ class DrishtiDashboard {
                         <div class="zone-breakdown-container">
                             <div class="zone-breakdown-cards-container">
                                 ${this.availableFilters.zones
-									.map((zone) => {
-										const zoneCount = monthData?.zone_breakdown[zone] || 0; // Use reaggregated zone breakdown
-										const isDisabled = zoneCount === 0;
-										return `
+						.map((zone) => {
+							const zoneCount = monthData?.zone_breakdown[zone] || 0; // Use reaggregated zone breakdown
+							const isDisabled = zoneCount === 0;
+							return `
                                         <div class="zone-card ${isDisabled ? "disabled-zone-card" : ""}">
                                             <div class="zone-card-name">${zone}</div>
                                             <div class="zone-card-count">
-                                                ${
-													isDisabled
-														? `<span>${zoneCount}</span>`
-														: `<span class="zone-drill-link" data-category="${catName}" data-month="${latestMonthKey}" data-zone="${zone}">
+                                                ${isDisabled
+									? `<span>${zoneCount}</span>`
+									: `<span class="zone-drill-link" data-category="${catName}" data-month="${latestMonthKey}" data-zone="${zone}">
                                                         ${zoneCount}
                                                     </span>`
-												}
+								}
                                             </div>
                                         </div>
                                         `;
-									})
-									.join("")}
+						})
+						.join("")}
                             </div>
                         </div>
                     </td>
@@ -12578,9 +12615,9 @@ class DrishtiDashboard {
 
 				html += `
                  <td class="metric-cell category-cell">${this.getCategoryBadge(
-						mdata.category,
-						"small",
-					)}</td>
+					mdata.category,
+					"small",
+				)}</td>
                  <td class="metric-cell amount-cell">${this.formatNumber(mdata.target)}</td>
                  <td class="metric-cell amount-cell">${this.formatNumber(mdata.achievement)}</td>
                  <td>
@@ -12670,13 +12707,13 @@ class DrishtiDashboard {
 
 	getCategoryBadge(category, size = "normal") {
 		const categoryConfig = {
-			"Pinnacle":    { text: "#6D28D9", bg: "#F5F3FF", border: "#C4B5FD" },
-			"Master":      { text: "#1D4ED8", bg: "#EFF6FF", border: "#93C5FD" },
+			"Pinnacle": { text: "#6D28D9", bg: "#F5F3FF", border: "#C4B5FD" },
+			"Master": { text: "#1D4ED8", bg: "#EFF6FF", border: "#93C5FD" },
 			"Accelerator": { text: "#047857", bg: "#ECFDF5", border: "#6EE7B7" },
-			"Starter":     { text: "#B45309", bg: "#FFFBEB", border: "#FDE68A" },
-			"Learner":     { text: "#BE185D", bg: "#FDF2F8", border: "#F9A8D4" },
-			"Zero Level":  { text: "#991B1B", bg: "#FEF2F2", border: "#FECACA" },
-			"Zero":        { text: "#991B1B", bg: "#FEF2F2", border: "#FECACA" }
+			"Starter": { text: "#B45309", bg: "#FFFBEB", border: "#FDE68A" },
+			"Learner": { text: "#BE185D", bg: "#FDF2F8", border: "#F9A8D4" },
+			"Zero Level": { text: "#991B1B", bg: "#FEF2F2", border: "#FECACA" },
+			"Zero": { text: "#991B1B", bg: "#FEF2F2", border: "#FECACA" }
 		};
 		const config = categoryConfig[category] || { text: "#64748b", bg: "#f8fafc", border: "#e2e8f0" };
 		const fontSize = size === "small" ? "10px" : "12px";
@@ -14110,7 +14147,7 @@ class DrishtiDashboard {
 		}
 
 		const allowedSolIds = new Set((filteredBranches || []).map(b => String(b.sol_id || b.sol || "").trim()));
-		const filteredRaw = allowedSolIds.size > 0 
+		const filteredRaw = allowedSolIds.size > 0
 			? rawData.filter(r => allowedSolIds.has(String(r.sol_id || "").trim()))
 			: rawData;
 
