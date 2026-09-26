@@ -3068,11 +3068,11 @@
 															Netwin
 														</div>
 														<div
-															v-if="row.isExceptionalReversal"
+															v-if="row.isExceptionalReversal && row.isDebit"
 															class="advance-payment-label"
-															:style="{ color: row.isDebit ? '#dc2626' : '#059669', background: row.isDebit ? '#fef2f2' : '#ecfdf5', borderColor: row.isDebit ? '#fca5a5' : '#a7f3d0' }"
+															style="color: #dc2626; background: #fef2f2; border-color: #fca5a5;"
 														>
-															[[ row.isDebit ? 'DEBIT REVERSAL' : 'EXCEPTIONAL CREDIT' ]]
+															DEBIT REVERSAL
 														</div>
 														<div
 															v-if="row.isSupplementary"
@@ -4301,6 +4301,9 @@
 					const monthlyInterests = {};
 					const ledger = [];
 					let runningTotalInterest = 0;
+					// Sequential ledger balance so every transaction (advance, reversal,
+					// credit, debit) carries its own balance for statement tally.
+					let runningLedgerBalance = 0;
 
 					const displayLimit = isPremature
 						? effectiveInterestMonths - 1
@@ -4370,7 +4373,6 @@
 						const projMonth = String(currentMonthDate.getMonth() + 1).padStart(2, "0");
 						const projectedDate = `${projDay}/${projMonth}/${y_l}`;
 
-						const balBefore = principalSum + (isPremature ? 0 : compoundedInt);
 						const hasDbTransaction = monthsWithTransactions.has(m);
 						const isAdjustedInstallment = installment > 0 && !hasDbTransaction;
 
@@ -4412,76 +4414,128 @@
 						}
 
 						exceptionalCycleTxns.forEach((exTxn, exIdx) => {
+							const isExceptionalDebit = exTxn.type === "D";
 							displayCycleTxns.push({
 								...exTxn,
-								displayAmount:
-									exTxn.type === "D"
-										? -Math.abs(this.parseTxnAmount(exTxn.amount))
-										: this.parseTxnAmount(exTxn.amount),
-								isSupplementary: false,
+								displayAmount: isExceptionalDebit
+									? -Math.abs(this.parseTxnAmount(exTxn.amount))
+									: Math.abs(this.parseTxnAmount(exTxn.amount)),
+								// Exceptional credit is an advance payment, a debit
+								// reversal reduces the balance.
+								isSupplementary: !isExceptionalDebit,
 								isExceptionalReversal: true,
-								isDebit: exTxn.type === "D",
+								isDebit: isExceptionalDebit,
 								splitIndex: 100 + exIdx,
 							});
 						});
 
-						if (displayCycleTxns.length) {
-							displayCycleTxns.forEach((txn, idx) => {
-								const isEx = !!txn.isExceptionalReversal;
-								ledger.push({
-									rowKey: `${m}-${idx}-${txn.date}-${txn.displayAmount}-${txn.splitIndex || 0}`,
-									monthNo: m + 1,
-									monthYear: `${mmmm}/${yy}`,
-									tenureCycle: cycleLabel,
-									date: txn.date || rowDate,
-									particular:
-										txn.particular ||
-										(displayCycleTxns.length > 1
-											? `${txn.particular} | REPRESENTS ${cycleLabel}`
-											: "Transaction posted"),
-									installment:
-										txn.displayAmount !== undefined && txn.displayAmount !== null
-											? Number(txn.displayAmount).toFixed(2)
-											: installment.toFixed(2),
-									balanceBefore: !isEx && idx === 0 ? balBefore.toFixed(2) : "",
-									rate: !isEx && idx === 0 && shouldAccrueInterest ? appRate : "",
-									interestAmount: !isEx && idx === 0 ? m_int.toFixed(2) : "",
-									closingBalance: !isEx && idx === 0 ? (balBefore + m_int).toFixed(2) : "",
-									isFromDb: txn.isFromDb !== undefined ? txn.isFromDb : true,
-									imported_from_csv: !!txn.imported_from_csv,
-									isAdjustedInstallment: !!txn.isAdjustedInstallment,
-									isSupplementary: !!txn.isSupplementary,
-									isExceptionalReversal: isEx,
-									isDebit: !!txn.isDebit || txn.type === "D",
-									isSkipRow: !!txn.isSkipRow,
-									isPostSettlement: m >= effectiveInterestMonths,
-								});
-							});
-						} else {
-							const particular = isAdjustedInstallment
-								? "ADVANCE ADJUSTED"
-								: "SKIP INSTALLMENT";
+						// Keep every entry of the cycle in date order. Exceptional
+						// reversals/advances are appended after the regular credits, so
+						// without this a dated reversal could appear after a later
+						// credit and break the running balance chronology.
+						displayCycleTxns.sort(
+							(a, b) => this.parseDate(a.date) - this.parseDate(b.date),
+						);
+
+						// The cycle's scheduled installment belongs to its first regular
+						// (non-exceptional, non-synthetic) entry; that row carries the
+						// month's interest. Falls back to the first row when the cycle has
+						// no regular entry at all.
+						const installmentRowMatch = displayCycleTxns.findIndex(
+							(txn) => !txn.isExceptionalReversal && txn.isFromDb !== false,
+						);
+						const installmentRowIndex =
+							installmentRowMatch === -1 ? 0 : installmentRowMatch;
+
+					if (displayCycleTxns.length) {
+						displayCycleTxns.forEach((txn, idx) => {
+							const isEx = !!txn.isExceptionalReversal;
+							const isSyntheticRow = txn.isFromDb === false;
+							// Interest posts on the month's scheduled installment entry, not
+							// simply the first row. After date sorting that row may be a
+							// dated reversal, which must not carry the interest.
+							const isInstallmentRow =
+								!isEx && !isSyntheticRow && idx === installmentRowIndex;
+							const rowAmount =
+								txn.displayAmount !== undefined && txn.displayAmount !== null
+									? Number(txn.displayAmount)
+									: installment;
+
+							// Every entry (advance, reversal, split credit) carries a balance
+							// chained from the previous row's closing balance.
+							const rowInterest = isInstallmentRow ? m_int : 0;
+							const rowRate = isInstallmentRow && shouldAccrueInterest ? appRate : 0;
+
+							// Balance is always chained from the previous row's closing so the
+							// ledger stays continuous. Later entries (advance, reversal, split
+							// credit) add their own amount. Balances are not re-seeded from the
+							// compounding formula, which would drop the interest accrued
+							// between quarter boundaries.
+							let rowBalanceBefore;
+							if (isInstallmentRow) {
+								rowBalanceBefore = runningLedgerBalance + rowAmount;
+							} else {
+								rowBalanceBefore = runningLedgerBalance + (isSyntheticRow ? 0 : rowAmount);
+							}
+							const rowClosingBalance = rowBalanceBefore + rowInterest;
+							runningLedgerBalance = rowClosingBalance;
+
 							ledger.push({
-								rowKey: `${m}-${particular}`,
+								rowKey: `${m}-${idx}-${txn.date}-${txn.displayAmount}-${txn.splitIndex || 0}`,
 								monthNo: m + 1,
 								monthYear: `${mmmm}/${yy}`,
 								tenureCycle: cycleLabel,
-								date: rowDate,
-								particular,
-								installment: installment.toFixed(2),
-								balanceBefore: balBefore.toFixed(2),
-								rate: shouldAccrueInterest ? appRate : 0,
-								interestAmount: m_int.toFixed(2),
-								closingBalance: (balBefore + m_int).toFixed(2),
-								isFromDb: false,
-								isAdjustedInstallment,
-								isSupplementary: false,
-								isExceptionalReversal: false,
-								isDebit: false,
-								isSkipRow: !isAdjustedInstallment && parseFloat(installment) === 0,
+								date: txn.date || rowDate,
+								particular:
+									txn.particular ||
+									(displayCycleTxns.length > 1
+										? `${txn.particular} | REPRESENTS ${cycleLabel}`
+										: "Transaction posted"),
+								installment: rowAmount.toFixed(2),
+								balanceBefore: rowBalanceBefore.toFixed(2),
+								rate: rowRate,
+								interestAmount: rowInterest.toFixed(2),
+								closingBalance: rowClosingBalance.toFixed(2),
+								isFromDb: txn.isFromDb !== undefined ? txn.isFromDb : true,
+								imported_from_csv: !!txn.imported_from_csv,
+								isAdjustedInstallment: !!txn.isAdjustedInstallment,
+								isSupplementary: !!txn.isSupplementary,
+								isExceptionalReversal: isEx,
+								isDebit: !!txn.isDebit || txn.type === "D",
+								isSkipRow: !!txn.isSkipRow,
 								isPostSettlement: m >= effectiveInterestMonths,
 							});
-						}
+						});
+					} else {
+						const particular = isAdjustedInstallment
+							? "ADVANCE ADJUSTED"
+							: "SKIP INSTALLMENT";
+						// Single synthetic entry: chain from previous closing. A skip row
+						// adds nothing, an advance-adjusted row adds its installment.
+						const rowBalanceBefore = runningLedgerBalance + installment;
+						const rowClosingBalance = rowBalanceBefore + m_int;
+						runningLedgerBalance = rowClosingBalance;
+						ledger.push({
+							rowKey: `${m}-${particular}`,
+							monthNo: m + 1,
+							monthYear: `${mmmm}/${yy}`,
+							tenureCycle: cycleLabel,
+							date: rowDate,
+							particular,
+							installment: installment.toFixed(2),
+							balanceBefore: rowBalanceBefore.toFixed(2),
+							rate: shouldAccrueInterest ? appRate : 0,
+							interestAmount: m_int.toFixed(2),
+							closingBalance: rowClosingBalance.toFixed(2),
+							isFromDb: false,
+							isAdjustedInstallment,
+							isSupplementary: false,
+							isExceptionalReversal: false,
+							isDebit: false,
+							isSkipRow: !isAdjustedInstallment && parseFloat(installment) === 0,
+							isPostSettlement: m >= effectiveInterestMonths,
+						});
+					}
 
 						if (!isPremature && (m + 1) % 3 === 0) {
 							compoundedInt += accruedCurrQtr;
