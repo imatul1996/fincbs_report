@@ -4180,6 +4180,13 @@
 							? this.data.transactions
 							: this.data.transactions.slice(0, closureCutoffIndex);
 
+					// A flagged credit (is_exceptional_reversal) is already left out of
+					// rawCreditsByMonth / actualCreditsTotal below, because it is the
+					// credit that a later debit reverses. When that reversing debit
+					// arrives we must NOT subtract it as well - the pair nets to zero and
+					// subtracting both would understate the principal by that amount.
+					// A debit that never matched a credit is a genuine outflow, so it
+					// still reduces the principal.
 					effectiveTransactions.forEach((t) => {
 							if (t.type === "C") {
 								const dVal = this.parseDate(t.date);
@@ -4210,16 +4217,28 @@
 										actualTxnParticulars[m_off].push(t.particular);
 									}
 								}
-							} else if (t.type === "D" && t.is_exceptional_reversal) {
-								const dVal = this.parseDate(t.date);
-								if (dVal <= dExit) {
-									let m_off = getCycleOffset(dVal);
-									let debitAmt = Math.abs(this.parseTxnAmount(t.amount));
+						} else if (t.type === "D" && t.is_exceptional_reversal) {
+							const dVal = this.parseDate(t.date);
+							if (dVal <= dExit) {
+								let m_off = getCycleOffset(dVal);
+								let debitAmt = Math.abs(this.parseTxnAmount(t.amount));
+								// Skip the deduction when this debit only reverses a credit
+								// that was already excluded, otherwise the pair is counted
+								// twice and the principal is understated.
+								const reversesExcludedCredit = effectiveTransactions.some(
+									(ot) =>
+										ot.type === "C" &&
+										ot.is_exceptional_reversal &&
+										Math.abs(this.parseTxnAmount(ot.amount) - debitAmt) < 0.01 &&
+										this.parseDate(ot.date) < dVal,
+								);
+								if (!reversesExcludedCredit) {
 									actualCreditsTotal -= debitAmt;
 									rawCreditsByMonth[m_off] = (rawCreditsByMonth[m_off] || 0) - debitAmt;
 									monthsWithTransactions.add(m_off);
-									
-									if (!cycleTransactions[m_off]) {
+								}
+								
+								if (!cycleTransactions[m_off]) {
 										cycleTransactions[m_off] = [];
 									}
 									cycleTransactions[m_off].push({
@@ -4437,25 +4456,34 @@
 							(a, b) => this.parseDate(a.date) - this.parseDate(b.date),
 						);
 
-						// The cycle's scheduled installment belongs to its first regular
-						// (non-exceptional, non-synthetic) entry; that row carries the
-						// month's interest. Falls back to the first row when the cycle has
-						// no regular entry at all.
-						const installmentRowMatch = displayCycleTxns.findIndex(
+					// Exactly one row per cycle carries the month's interest, picked in
+					// priority order:
+					//   1. the real installment entry (non-exceptional, non-synthetic)
+					//   2. the synthetic carry row (SKIP INSTALLMENT / ADVANCE ADJUSTED),
+					//      so months without a fresh payment still earn interest
+					//   3. an exceptional entry, as a last resort
+					// Without the synthetic fallback a cycle that only has a SKIP or
+					// ADVANCE ADJUSTED row matched nothing and its interest was dropped.
+					const installmentRowIndex = (() => {
+						const regularMatch = displayCycleTxns.findIndex(
 							(txn) => !txn.isExceptionalReversal && txn.isFromDb !== false,
 						);
-						const installmentRowIndex =
-							installmentRowMatch === -1 ? 0 : installmentRowMatch;
+						if (regularMatch !== -1) return regularMatch;
+						const syntheticMatch = displayCycleTxns.findIndex(
+							(txn) => txn.isFromDb === false,
+						);
+						if (syntheticMatch !== -1) return syntheticMatch;
+						return 0;
+					})();
 
 					if (displayCycleTxns.length) {
 						displayCycleTxns.forEach((txn, idx) => {
 							const isEx = !!txn.isExceptionalReversal;
 							const isSyntheticRow = txn.isFromDb === false;
-							// Interest posts on the month's scheduled installment entry, not
-							// simply the first row. After date sorting that row may be a
-							// dated reversal, which must not carry the interest.
-							const isInstallmentRow =
-								!isEx && !isSyntheticRow && idx === installmentRowIndex;
+							// Interest posts on the row chosen above. The priority chain keeps
+							// it off dated reversals whenever the cycle has a real or
+							// synthetic installment row, so the balance still compounds.
+							const isInstallmentRow = idx === installmentRowIndex;
 							const rowAmount =
 								txn.displayAmount !== undefined && txn.displayAmount !== null
 									? Number(txn.displayAmount)
@@ -4471,12 +4499,11 @@
 							// credit) add their own amount. Balances are not re-seeded from the
 							// compounding formula, which would drop the interest accrued
 							// between quarter boundaries.
-							let rowBalanceBefore;
-							if (isInstallmentRow) {
-								rowBalanceBefore = runningLedgerBalance + rowAmount;
-							} else {
-								rowBalanceBefore = runningLedgerBalance + (isSyntheticRow ? 0 : rowAmount);
-							}
+							// A synthetic row is only a carry marker for a payment already
+							// counted in an earlier cycle, so it adds no principal - just the
+							// interest it now earns.
+							const rowBalanceBefore =
+								runningLedgerBalance + (isSyntheticRow ? 0 : rowAmount);
 							const rowClosingBalance = rowBalanceBefore + rowInterest;
 							runningLedgerBalance = rowClosingBalance;
 
@@ -4510,9 +4537,10 @@
 						const particular = isAdjustedInstallment
 							? "ADVANCE ADJUSTED"
 							: "SKIP INSTALLMENT";
-						// Single synthetic entry: chain from previous closing. A skip row
-						// adds nothing, an advance-adjusted row adds its installment.
-						const rowBalanceBefore = runningLedgerBalance + installment;
+						// Single synthetic entry: chain from the previous closing. A synthetic
+						// row is a carry marker for a payment already counted earlier, so it
+						// adds no principal - only the interest the balance now earns.
+						const rowBalanceBefore = runningLedgerBalance;
 						const rowClosingBalance = rowBalanceBefore + m_int;
 						runningLedgerBalance = rowClosingBalance;
 						ledger.push({
