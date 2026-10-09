@@ -611,8 +611,36 @@ frappe.pages["sahayog_dashboard"].on_page_show = function (wrapper) {
 		$("<title>Drishti</title>").appendTo("head");
 	}
 
-	// Initialize Visitor Tracking
-	frappe.pages["sahayog_dashboard"].initVisitorTracking(wrapper);
+	// Designation gate (Drishti Settings): skip tracking + show Access Denied
+	// when the user's designation is not in the allowed designations list
+	frappe.call({
+		method:
+			"custom_report.custom_report.page.sahayog_dashboard.sahayog_dashboard.check_drishti_designation_access",
+		callback: function (r) {
+			const allowed = !r || !r.message || r.message.allowed !== false;
+			if (!allowed) {
+				if (frappe.pages["sahayog_dashboard"].cleanupVisitorTracking) {
+					frappe.pages["sahayog_dashboard"].cleanupVisitorTracking();
+				}
+				const $main =
+					wrapper.dashboard && wrapper.dashboard.page && wrapper.dashboard.page.main
+						? wrapper.dashboard.page.main
+						: $(wrapper).find(".layout-main");
+				$main.html(`
+					<div style="text-align: center; padding: 100px 20px;">
+						<div style="font-size: 60px; margin-bottom: 20px;">🚫</div>
+						<h2 style="color: #d32f2f;">Access Denied</h2>
+						<p style="font-size: 16px; color: #666;">
+							You do not have a <b>Report Preference</b> set up. <br>
+							Please contact your administrator to grant access.
+						</p>
+					</div>
+				`);
+				return;
+			}
+
+			// Initialize Visitor Tracking
+			frappe.pages["sahayog_dashboard"].initVisitorTracking(wrapper);
 
 
 	// Reset all caches so dashboard behaves like a fresh load every time
@@ -727,6 +755,8 @@ frappe.pages["sahayog_dashboard"].on_page_show = function (wrapper) {
 			updateDrishtiTimer();
 		}
 	}, 100);
+		},
+	});
 };
 
 frappe.pages["sahayog_dashboard"].on_page_hide = function (wrapper) {

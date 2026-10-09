@@ -245,6 +245,50 @@ def get_user_sol_ids():
     return {"user": user, "sol_ids": sol_ids, "employee_sol_id": employee_sol, "employee_zone": employee_zone, "employee_region": employee_region}
 
 
+def _get_allowed_drishti_designations():
+    """
+    Allowed designations from Drishti Settings (Table MultiSelect).
+    Returns a lowercase set. Empty set = feature not configured (allow all).
+    """
+    try:
+        rows = frappe.get_single("Drishti Settings").get("designations") or []
+    except Exception:
+        return set()
+    return {
+        str(r.get("designation") or "").strip().lower()
+        for r in rows
+        if r.get("designation")
+    }
+
+
+@frappe.whitelist()
+def check_drishti_designation_access():
+    """
+    Returns {"allowed": True/False} based on whether the current user's
+    Employee designation is present in Drishti Settings designations.
+    Empty settings list or Administrator = always allowed.
+    """
+    user = frappe.session.user
+    if user == "Administrator":
+        return {"allowed": True}
+
+    allowed = _get_allowed_drishti_designations()
+    if not allowed:
+        return {"allowed": True}
+
+    designation = frappe.db.get_value("Employee", {"user_id": user}, "designation")
+    if not designation:
+        designation = (
+            frappe.db.get_value("Employee", {"prefered_email": user}, "designation")
+            or frappe.db.get_value("Employee", {"company_email": user}, "designation")
+            or frappe.db.get_value("Employee", {"name": user}, "designation")
+        )
+    if not designation:
+        return {"allowed": True}
+    # Match = blocked (Access Denied + no activity log)
+    return {"allowed": str(designation).strip().lower() not in allowed}
+
+
 def get_user_report_permissions(user):
     """
     Fetches permissions from 'Report Preference' or Employee for the current user.
@@ -287,6 +331,13 @@ def get_user_report_permissions(user):
         "branch manager" in designation or "bm" == designation or "branch head" in designation
     )
     permissions["is_branch_manager"] = is_branch_manager
+
+    # Drishti Settings designation gate: if user's designation is IN the
+    # configured list → no access (Access Denied, no activity log).
+    allowed_desigs = _get_allowed_drishti_designations()
+    if allowed_desigs and designation in allowed_desigs:
+        permissions["has_access"] = False
+        return permissions
 
     pref_name = frappe.db.get_value("Report Preference", {"user": user}, "name")
     if pref_name:
