@@ -1739,6 +1739,63 @@ def get_rd_smbg_pending_effective_date(selected_date=None):
         return None
 
 
+@frappe.whitelist()
+@sahayog_cache(ttl=86400)
+def get_rd_smbg_agent_customers(sol_id, rm_id, auth_id=None, selected_date=None):
+    """Customer-level rows for one agent under a branch (RD & SMBG pending drilldown)."""
+    from custom_report.rd_smbg_pending_report import SCHM_EXCLUDE_FILTER, resolve_target_date
+
+    sol_id = str(sol_id or "").strip()
+    rm_id = str(rm_id or "").strip()
+    if not sol_id or not rm_id:
+        return []
+
+    # Only branches the user is already allowed to see
+    perms = get_user_report_permissions(frappe.session.user)
+    allowed = get_permitted_sol_ids_for_user(perms)
+    if allowed is not None:
+        allowed_set = {str(s).strip() for s in allowed}
+        if sol_id not in allowed_set and sol_id.lstrip("0") not in allowed_set:
+            return []
+
+    target_date = resolve_target_date(selected_date)
+    conditions = ["`date` = %s", "`sol_id` = %s", "`rm_id` = %s", SCHM_EXCLUDE_FILTER]
+    values = [str(target_date), sol_id, rm_id]
+    auth_id = str(auth_id or "").strip()
+    if auth_id and auth_id != "UNKNOWN":
+        conditions.append("`auth_id` = %s")
+        values.append(auth_id)
+
+    rows = frappe.db.sql(
+        """
+        SELECT cif_id, foracid, acct_name, schm_desc, deposit_amount,
+               acct_opn_date, maturity_date, total_instalment_paid,
+               pending_instalments, pending_amount
+        FROM `tabRD and SMBG Pending`
+        WHERE {}
+        ORDER BY pending_amount DESC, acct_name
+        """.format(" AND ".join(conditions)),
+        tuple(values),
+        as_dict=True,
+    )
+
+    result = []
+    for r in rows:
+        result.append({
+            "cif_id": r.cif_id or "",
+            "foracid": r.foracid or "",
+            "acct_name": r.acct_name or "",
+            "schm_desc": r.schm_desc or "",
+            "deposit_amount": float(r.deposit_amount or 0),
+            "acct_opn_date": str(r.acct_opn_date or ""),
+            "maturity_date": str(r.maturity_date or ""),
+            "total_instalment_paid": float(r.total_instalment_paid or 0),
+            "pending_instalments": int(r.pending_instalments or 0),
+            "pending_amount": float(r.pending_amount or 0),
+        })
+    return result
+
+
 def _build_rd_smbg_rows(sol_ids=None, selected_date=None):
     from custom_report.rd_smbg_pending_report import get_rm_details, get_sol_summary, resolve_target_date
 
