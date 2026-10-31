@@ -16026,7 +16026,7 @@ class DrishtiDashboard {
 					const fromMonth = monthsList[0].display || monthsList[0].key;
 					const toMonth = monthsList[monthsList.length - 1].display || monthsList[monthsList.length - 1].key;
 					this.page.main.find("#category-chart-period-text").html(
-						`Branch movement across performance categories from ${fromMonth} to ${toMonth} &bull; <span style="font-weight: 700; color: #334155;">Left Bar:</span> Branch Count &bull; <span style="font-weight: 700; color: #0d9488;">Right Bar (Teal Border):</span> Achievement`
+						`Branch movement across performance categories from ${fromMonth} to ${toMonth} &bull; <span style="font-weight: 700; color: #334155;">Left Bar:</span> Branch Count &bull; <span style="font-weight: 700; color: #334155;">Right Bar:</span> Achievement`
 					);
 				}
 
@@ -16071,7 +16071,7 @@ class DrishtiDashboard {
 					return "₹" + Math.round(val);
 				};
 
-				// Bar 1: Branch count stacked by category (wider bar for legible text)
+				// Bar 1: Branch count stacked by category
 				const countSeries = categories.map((cat) => {
 					const cfg = categoryConfig[cat];
 					return {
@@ -16079,8 +16079,8 @@ class DrishtiDashboard {
 						type: "bar",
 						stack: "branch_count",
 						yAxisIndex: 0,
-						barWidth: 60,
-						barGap: "4%",
+						barWidth: 50,
+						barGap: "6%",
 						emphasis: {
 							focus: "series",
 							itemStyle: { color: cfg.color, borderColor: cfg.border, borderWidth: 2, shadowBlur: 8, shadowColor: "rgba(0,0,0,0.3)" },
@@ -16095,7 +16095,7 @@ class DrishtiDashboard {
 							position: "inside",
 							formatter: (params) => (params.value > 0 ? params.value : ""),
 							color: cfg.text,
-							fontSize: 12,
+							fontSize: 11,
 							fontWeight: 800
 						},
 						itemStyle: { color: cfg.color, borderColor: cfg.border, borderWidth: 1.5, borderRadius: 2 },
@@ -16106,8 +16106,22 @@ class DrishtiDashboard {
 					};
 				});
 
-				// Bar 2: Branch achievement stacked by category (with light teal border, wider bar)
-				const lightTealBorder = "#14b8a6";
+				// ---- Per-month stack totals (for the badge circles above each bar) ----
+				const totalCounts = monthKeys.map((k, i) => {
+					let t = 0;
+					categories.forEach((cat) => { t += (counts[cat] && counts[cat][i]) || 0; });
+					return t;
+				});
+				const totalAchievements = monthKeys.map((k, i) => {
+					let t = 0;
+					categories.forEach((cat) => { t += (revenues[cat] && revenues[cat][i]) || 0; });
+					return t;
+				});
+				const maxCount = Math.max(...totalCounts, 1);
+				const circleAbove = maxCount * 0.06; // gap between bar top and the circles
+				const yMax = maxCount * 1.28; // headroom for the circles above the bars
+
+				// Bar 2: Branch achievement stacked by category (same height ratio as Bar 1, showing achievement sum)
 				const achSeries = categories.map((cat) => {
 					const cfg = categoryConfig[cat];
 					return {
@@ -16115,11 +16129,11 @@ class DrishtiDashboard {
 						type: "bar",
 						stack: "branch_achievement",
 						yAxisIndex: 0,
-						barWidth: 60,
-						barGap: "4%",
+						barWidth: 50,
+						barGap: "6%",
 						emphasis: {
 							focus: "series",
-							itemStyle: { color: cfg.color, borderColor: "#0d9488", borderWidth: 2.5, shadowBlur: 8, shadowColor: "rgba(20,184,166,0.4)" },
+							itemStyle: { color: cfg.color, borderColor: "#14b8a6", borderWidth: 2, shadowBlur: 8, shadowColor: "rgba(0,0,0,0.3)" },
 							label: { color: cfg.text, fontWeight: 900 }
 						},
 						blur: {
@@ -16134,24 +16148,56 @@ class DrishtiDashboard {
 								return fmtAchLabel(ach);
 							},
 							color: cfg.text,
-							fontSize: 11,
+							fontSize: 9.5,
 							fontWeight: 800
 						},
 						itemStyle: {
 							color: cfg.color,
-							borderColor: lightTealBorder,
-							borderWidth: 1.8,
+							borderColor: "#14b8a6",
+							borderWidth: 1.5,
+							borderType: "dashed",
 							borderRadius: 2
 						},
 						data: counts[cat].map((countVal, idx) => ({
 							value: countVal,
 							achievement: revenues[cat][idx],
-							itemStyle: { borderWidth: countVal === 0 ? 0 : 1.8, opacity: countVal === 0 ? 0 : 1 }
+							itemStyle: { borderWidth: countVal === 0 ? 0 : 1.5, opacity: countVal === 0 ? 0 : 1 }
 						}))
 					};
 				});
 
-				const series = [...countSeries, ...achSeries];
+				// Two badge circles, one above each bar, showing that bar's stack sum.
+				//  Circle 1 (branch-count bar) -> white fill, black text, on the LEFT
+				//  Circle 2 (achievement bar)   -> teal fill,  black text, on the RIGHT
+				// Both bars share the same category x-position, so the circles are
+				// offset left/right with symbolOffset to sit above their own bar.
+				const countTotalCircle = {
+					name: "Total Branch Count",
+					type: "scatter",
+					xAxisIndex: 0,
+					yAxisIndex: 0,
+					symbol: "circle",
+					symbolOffset: [-26, 0],
+					symbolSize: 32,
+					zIndex: 1000,
+					itemStyle: { color: "#ffffff", borderColor: "#0f172a", borderWidth: 2, shadowBlur: 6, shadowColor: "rgba(0,0,0,0.35)" },
+					label: { show: true, position: "inside", color: "#0f172a", fontWeight: 900, fontSize: 11, formatter: (p) => String(totalCounts[p.dataIndex] || 0) },
+					data: monthDisplays.map((m, i) => ({ value: [m, totalCounts[i] + circleAbove] })),
+				};
+				const achTotalCircle = {
+					name: "Total Achievement",
+					type: "scatter",
+					xAxisIndex: 0,
+					yAxisIndex: 0,
+					symbol: "circle",
+					symbolOffset: [26, 0],
+					symbolSize: 36,
+					zIndex: 1000,
+					itemStyle: { color: "#14b8a6", borderColor: "#14b8a6", borderWidth: 2, shadowBlur: 6, shadowColor: "rgba(0,0,0,0.35)" },
+					label: { show: true, position: "inside", color: "#0f172a", fontWeight: 900, fontSize: 11, formatter: (p) => fmtAchLabel(totalAchievements[p.dataIndex] || 0) },
+					data: monthDisplays.map((m, i) => ({ value: [m, totalCounts[i] + circleAbove] })),
+				};
+				const series = [...countSeries, ...achSeries, countTotalCircle, achTotalCircle];
 
 				const buildLegendData = (activeName = null) => {
 					return categories.map((cat) => {
@@ -16176,7 +16222,10 @@ class DrishtiDashboard {
 						textStyle: { color: "#ffffff", fontSize: 12 },
 						formatter: (params) => {
 							if (!params || !params.length) return "";
-							const dataIdx = params[0].dataIndex;
+							// Only show bar series in the tooltip (exclude the two badge circles)
+							const barParams = params.filter((p) => p.seriesType === "bar");
+							if (!barParams.length) return "";
+							const dataIdx = barParams[0].dataIndex;
 							let total = 0;
 							let totalRev = 0;
 							let html = `<div style="font-weight:700;font-size:13px;margin-bottom:6px;border-bottom:1px solid rgba(255,255,255,0.2);padding-bottom:4px;">${params[0]?.axisValue || ""}</div>`;
@@ -16201,7 +16250,7 @@ class DrishtiDashboard {
 						}
 					},
 					legend: { bottom: 4, data: buildLegendData(), icon: "circle", itemWidth: 10, itemHeight: 10 },
-					grid: { left: "4%", right: "4%", top: "8%", bottom: "12%", containLabel: true },
+					grid: { left: "4%", right: "4%", top: "18%", bottom: "12%", containLabel: true },
 					xAxis: {
 						type: "category",
 						data: monthDisplays,
