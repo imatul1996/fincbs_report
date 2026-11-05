@@ -415,8 +415,8 @@
         },
         get showCheckerTable() {
             const status = this.currentItem.exact_status || '';
-            // Only hide checker table if it is saved in maker tray / incomplete
-            if (status.includes('Saved')) {
+            // Only hide checker table if it is draft / saved in maker tray / incomplete
+            if (status.includes('Saved') || status.includes('Draft')) {
                 return false;
             }
             return true;
@@ -425,9 +425,9 @@
             const status = this.currentItem.exact_status || '';
             if (status === 'Verified') {
                 return 'CIF is already Verified.';
-            } else if (status === 'Under Verification') {
+            } else if (status === 'Under Verification' || status === 'Unverified (Pending Checker)') {
                 return 'CIF is under verification from checker.';
-            } else if (status.includes('Saved')) {
+            } else if (status.includes('Saved') || status.includes('Draft')) {
                 return 'CIF is saved, Kindly Submit for verification.';
             } else if (status === 'Rejected by Checker') {
                 return 'CIF is rejected and currently showing in makers tray, please submit for verification.';
