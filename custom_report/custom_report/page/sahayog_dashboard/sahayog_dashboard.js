@@ -8397,6 +8397,7 @@ class DrishtiDashboard {
 									},
 									callback: function (r2) {
 										const bs = (r2 && r2.message) || [];
+									self.plBsData = bs;
 										const s3 = bs.find((x) => x.schedule_number === 3);
 										const s9 = bs.find((x) => x.schedule_number === 9);
 										const avgDiff = Math.abs(s3 ? Number(s3.avg_balance) || 0 : 0) - Math.abs(s9 ? Number(s9.avg_balance) || 0 : 0);
@@ -8440,6 +8441,13 @@ class DrishtiDashboard {
 						let html = "";
 						let incomeOverExp = 0;
 						let monthlyIncomeOverExp = 0;
+						const dateStrFy = container.find("#pl-date-filter").val() || "";
+						let fyMonths = 1;
+						if (dateStrFy) {
+							const mFy = Number(dateStrFy.split("-")[1]) || 1;
+							fyMonths = mFy >= 4 ? mFy - 3 : mFy + 9;
+							if (fyMonths < 1) fyMonths = 1;
+						}
 						(self.plData || []).forEach((sch) => {
 							const showTp = sch.schedule_number === 13 && self.plTransferInterest != null;
 							const tpYearly = showTp && self.plTransferInterestYearly != null ? self.plTransferInterestYearly : 0;
@@ -8472,6 +8480,24 @@ class DrishtiDashboard {
 									schMonthly = m;
 								}
 							}
+							let schYealdYearly = null;
+							let schYealdMonthly = null;
+							let bsYearlyDenom = null;
+							let bsMonthlyDenom = null;
+							if (sch.schedule_number === 13 || sch.schedule_number === 15) {
+								// Yearly yeald = PL Amount / BS Schedule (13 -> Schedule 9, 15 -> Schedule 3)
+								const plBsRows = self.plBsData || [];
+								const plBsNum = sch.schedule_number === 13 ? 9 : 3;
+								const plBsRow = plBsRows.find((x) => x.schedule_number === plBsNum) || plBsRows.find((x) => String(x.schedule_name || "").toLowerCase().includes(plBsNum === 3 ? "deposit" : "loan"));
+								bsYearlyDenom = plBsRow ? Number(plBsRow.yearly_avg_balance) : null;
+								bsMonthlyDenom = plBsRow ? Number(plBsRow.avg_balance) : null;
+								const plYearlyAmt = (Number(sch.total_balance) || 0) + tpYearly;
+								const plMonthlyAmt = (Number(sch.monthly_balance) || 0) + tpMonthly;
+								if (bsYearlyDenom) schYealdYearly = plYearlyAmt / bsYearlyDenom;
+								if (bsMonthlyDenom) schYealdMonthly = (plMonthlyAmt / bsMonthlyDenom) * 12 / fyMonths;
+								schTotal = plYearlyAmt;
+								schMonthly = plMonthlyAmt;
+							}
 							const collapsed = !self.plCollapsed || self.plCollapsed[sch.schedule_number] !== false;
 							incomeOverExp += schTotal;
 							monthlyIncomeOverExp += schMonthly;
@@ -8479,33 +8505,61 @@ class DrishtiDashboard {
 								<tr class="pl-sch-row" data-sch="${sch.schedule_number}" style="cursor: pointer;">
 									<td style="padding: 9px 12px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; font-weight: 700; font-size: 12px; color: #1b263b;"><span class="sch-caret" style="display: inline-block; width: 14px;">${collapsed ? "▸" : "▾"}</span>${sch.schedule}</td>
 									<td style="padding: 9px 12px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; font-weight: 700; font-size: 12px; color: #1b263b; text-align: right;">${fmt(schTotal)}</td>
-									<td style="padding: 9px 12px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; font-weight: 700; font-size: 12px; color: #1b263b; text-align: right;" class="yeald-col"></td>
+									<td style="padding: 9px 12px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; font-weight: 700; font-size: 12px; color: #1b263b; text-align: right;" class="yeald-col">${((sch.schedule_number === 13 || sch.schedule_number === 15) && schYealdYearly != null) ? fmt(schYealdYearly) : "-"}</td>
 									<td style="padding: 9px 12px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; font-weight: 700; font-size: 12px; color: #1b263b; text-align: right;">${fmt(schMonthly)}</td>
-									<td style="padding: 9px 12px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; font-weight: 700; font-size: 12px; color: #1b263b; text-align: right;" class="yeald-col"></td>
+									<td style="padding: 9px 12px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; font-weight: 700; font-size: 12px; color: #1b263b; text-align: right;" class="yeald-col">${((sch.schedule_number === 13 || sch.schedule_number === 15) && schYealdMonthly != null) ? fmt(schYealdMonthly) : "-"}</td>
 								</tr>`;
-							if (showTp) {
+							const sortedSubs = (sch.sub_schedules || []).slice().sort((a,b)=>{
+								const getKey = (s)=>{ const t=(s.sub_schedule||'').trim(); const m=t.match(/^([0-9]+(?:\.[0-9]+)*)/); if(m) return m[1].split('.').map(x=>parseInt(x)); return [999999]; };
+								const ka=getKey(a), kb=getKey(b);
+								for(let i=0;i<Math.max(ka.length,kb.length);i++){ const va=ka[i]||0,vb=kb[i]||0; if(va!=vb)return va-vb;}
+								return (a.sub_schedule||'').localeCompare(b.sub_schedule||'');
+							});
+							if (showTp && sch.schedule_number === 13) {
+								let tpYealdMonthly = null;
+								if (bsMonthlyDenom) {
+									tpYealdMonthly = (Number(self.plTransferInterest) / bsMonthlyDenom) * 12 / fyMonths;
+								}
 								html += `
 									<tr class="pl-sub-row" data-sch="${sch.schedule_number}" style="${collapsed ? "display: none; " : ""}">
 										<td style="padding: 7px 12px 7px 28px; border-bottom: 1px solid #f1f5f9; font-size: 12px; font-weight: 600; color: #0f766e;">Transfer Pricing Interest</td>
 										<td style="padding: 7px 12px; border-bottom: 1px solid #f1f5f9; font-size: 12px; font-weight: 600; color: #0f766e; text-align: right;">${self.plTransferInterestYearly != null ? fmt(self.plTransferInterestYearly) : "-"}</td>
-										<td style="padding: 7px 12px; border-bottom: 1px solid #f1f5f9; font-size: 12px; font-weight: 600; color: #0f766e; text-align: right;" class="yeald-col"></td>
+										<td style="padding: 7px 12px; border-bottom: 1px solid #f1f5f9; font-size: 12px; font-weight: 600; color: #0f766e; text-align: right;" class="yeald-col">${self.plTransferInterestYearly != null ? fmt(self.plTransferInterestYearly) : "-"}</td>
 										<td style="padding: 7px 12px; border-bottom: 1px solid #f1f5f9; font-size: 12px; font-weight: 600; color: #0f766e; text-align: right;">${fmt(self.plTransferInterest)}</td>
-										<td style="padding: 7px 12px; border-bottom: 1px solid #f1f5f9; font-size: 12px; font-weight: 600; color: #0f766e; text-align: right;" class="yeald-col"></td>
+										<td style="padding: 7px 12px; border-bottom: 1px solid #f1f5f9; font-size: 12px; font-weight: 600; color: #0f766e; text-align: right;" class="yeald-col">${tpYealdMonthly != null ? fmt(tpYealdMonthly) : (schYealdMonthly != null ? fmt(schYealdMonthly) : "-")}</td>
 									</tr>`;
 							}
-							sch.sub_schedules.forEach((sub) => {
+							if (showTp && sch.schedule_number !== 13) {
+								let tpYealdMonthly = null;
+								if (bsMonthlyDenom) {
+									tpYealdMonthly = (Number(self.plTransferInterest) / bsMonthlyDenom) * 12 / fyMonths;
+								}
+								html += `
+									<tr class="pl-sub-row" data-sch="${sch.schedule_number}" style="${collapsed ? "display: none; " : ""}">
+										<td style="padding: 7px 12px 7px 28px; border-bottom: 1px solid #f1f5f9; font-size: 12px; font-weight: 600; color: #0f766e;">Transfer Pricing Interest</td>
+										<td style="padding: 7px 12px; border-bottom: 1px solid #f1f5f9; font-size: 12px; font-weight: 600; color: #0f766e; text-align: right;">${self.plTransferInterestYearly != null ? fmt(self.plTransferInterestYearly) : "-"}</td>
+										<td style="padding: 7px 12px; border-bottom: 1px solid #f1f5f9; font-size: 12px; font-weight: 600; color: #0f766e; text-align: right;" class="yeald-col">${self.plTransferInterestYearly != null ? fmt(self.plTransferInterestYearly) : "-"}</td>
+										<td style="padding: 7px 12px; border-bottom: 1px solid #f1f5f9; font-size: 12px; font-weight: 600; color: #0f766e; text-align: right;">${fmt(self.plTransferInterest)}</td>
+										<td style="padding: 7px 12px; border-bottom: 1px solid #f1f5f9; font-size: 12px; font-weight: 600; color: #0f766e; text-align: right;" class="yeald-col">${tpYealdMonthly != null ? fmt(tpYealdMonthly) : (schYealdMonthly != null ? fmt(schYealdMonthly) : "-")}</td>
+									</tr>`;
+							}
+							sortedSubs.forEach((sub) => {
 								const subKey = (sub.sub_schedule || "").trim().toLowerCase();
 								const subCv = combVals[subKey];
 								// Yearly = combined (prev full month + this month), Monthly = this month's own value
 								const subTotal = subCv ? subCv.combined : sub.total_balance;
 								const subMonthly = subCv ? subCv.month : sub.monthly_balance;
+								let subYealdMonthly = null;
+								if ((sch.schedule_number === 13 || sch.schedule_number === 15) && bsMonthlyDenom) {
+									subYealdMonthly = (Number(subMonthly) / bsMonthlyDenom) * 12 / fyMonths;
+								}
 								html += `
 									<tr class="pl-sub-row" data-sch="${sch.schedule_number}" style="${collapsed ? "display: none; " : ""}">
 										<td style="padding: 7px 12px 7px 28px; border-bottom: 1px solid #f1f5f9; font-size: 12px; color: #334155;">${sub.sub_schedule}</td>
 										<td style="padding: 7px 12px; border-bottom: 1px solid #f1f5f9; font-size: 12px; color: #334155; text-align: right;">${fmt(subTotal)}</td>
-										<td style="padding: 7px 12px; border-bottom: 1px solid #f1f5f9; font-size: 12px; color: #334155; text-align: right;" class="yeald-col"></td>
+										<td style="padding: 7px 12px; border-bottom: 1px solid #f1f5f9; font-size: 12px; color: #334155; text-align: right;" class="yeald-col">${fmt(subTotal)}</td>
 										<td style="padding: 7px 12px; border-bottom: 1px solid #f1f5f9; font-size: 12px; color: #334155; text-align: right;">${fmt(subMonthly)}</td>
-										<td style="padding: 7px 12px; border-bottom: 1px solid #f1f5f9; font-size: 12px; color: #334155; text-align: right;" class="yeald-col"></td>
+										<td style="padding: 7px 12px; border-bottom: 1px solid #f1f5f9; font-size: 12px; color: #334155; text-align: right;" class="yeald-col">${subYealdMonthly != null ? fmt(subYealdMonthly) : (schYealdMonthly != null ? fmt(schYealdMonthly) : "-")}</td>
 									</tr>`;
 							});
 						});
@@ -8517,9 +8571,9 @@ class DrishtiDashboard {
 							<tr>
 								<td style="padding: 10px 12px; background: #417d81; border-bottom: 1px solid #e2e8f0; font-weight: 700; font-size: 12px; color: #fff;">Income Over Expenditure</td>
 								<td style="padding: 10px 12px; background: #417d81; border-bottom: 1px solid #e2e8f0; font-weight: 700; font-size: 12px; color: #fff; text-align: right;">${fmt(incomeOverExp)}</td>
-								<td style="padding: 10px 12px; background: #417d81; border-bottom: 1px solid #e2e8f0; font-weight: 700; font-size: 12px; color: #fff; text-align: right;" class="yeald-col"></td>
+								<td style="padding: 10px 12px; background: #417d81; border-bottom: 1px solid #e2e8f0; font-weight: 700; font-size: 12px; color: #fff; text-align: right;" class="yeald-col">${fmt(incomeOverExp)}</td>
 								<td style="padding: 10px 12px; background: #417d81; border-bottom: 1px solid #e2e8f0; font-weight: 700; font-size: 12px; color: #fff; text-align: right;">${fmt(monthlyIncomeOverExp)}</td>
-								<td style="padding: 10px 12px; background: #417d81; border-bottom: 1px solid #e2e8f0; font-weight: 700; font-size: 12px; color: #fff; text-align: right;" class="yeald-col"></td>
+								<td style="padding: 10px 12px; background: #417d81; border-bottom: 1px solid #e2e8f0; font-weight: 700; font-size: 12px; color: #fff; text-align: right;" class="yeald-col">${fmt(monthlyIncomeOverExp)}</td>
 							</tr>`;
 						const searchActive = rawPlSearch().trim() !== "";
 						if (searchActive) {
@@ -8539,21 +8593,22 @@ class DrishtiDashboard {
 								<tr>
 									<td style="padding: 8px 12px; background: #f0fdfa; border-bottom: 1px solid #f1f5f9; font-size: 12px; font-weight: 600; color: #0f766e;">Central Allocation</td>
 									<td style="padding: 8px 12px; background: #f0fdfa; border-bottom: 1px solid #f1f5f9; font-size: 12px; font-weight: 600; color: #0f766e; text-align: right;">${fmt(centralAlloc)}</td>
-									<td style="padding: 8px 12px; background: #f0fdfa; border-bottom: 1px solid #f1f5f9; font-size: 12px; font-weight: 600; color: #0f766e; text-align: right;" class="yeald-col"></td>
+									<td style="padding: 8px 12px; background: #f0fdfa; border-bottom: 1px solid #f1f5f9; font-size: 12px; font-weight: 600; color: #0f766e; text-align: right;" class="yeald-col">${fmt(centralAlloc)}</td>
 									<td style="padding: 8px 12px; background: #f0fdfa; border-bottom: 1px solid #f1f5f9; font-size: 12px; font-weight: 600; color: #0f766e; text-align: right;">${fmt(monthlyCentralAlloc)}</td>
-									<td style="padding: 8px 12px; background: #f0fdfa; border-bottom: 1px solid #f1f5f9; font-size: 12px; font-weight: 600; color: #0f766e; text-align: right;" class="yeald-col"></td>
+									<td style="padding: 8px 12px; background: #f0fdfa; border-bottom: 1px solid #f1f5f9; font-size: 12px; font-weight: 600; color: #0f766e; text-align: right;" class="yeald-col">${fmt(monthlyCentralAlloc)}</td>
 								</tr>
 								<tr>
 									<td style="padding: 8px 12px; background: #f0fdfa; border-bottom: 1px solid #f1f5f9; font-size: 12px; font-weight: 600; color: ${iaaColor};">Income After Allocation</td>
 									<td style="padding: 8px 12px; background: #f0fdfa; border-bottom: 1px solid #f1f5f9; font-size: 12px; font-weight: 600; color: ${iaaColor}; text-align: right;">${incomeAfterAlloc < 0 ? "-" : ""}${fmt(incomeAfterAlloc)}</td>
-									<td style="padding: 8px 12px; background: #f0fdfa; border-bottom: 1px solid #f1f5f9; font-size: 12px; font-weight: 600; color: ${iaaColor}; text-align: right;" class="yeald-col"></td>
+									<td style="padding: 8px 12px; background: #f0fdfa; border-bottom: 1px solid #f1f5f9; font-size: 12px; font-weight: 600; color: ${iaaColor}; text-align: right;" class="yeald-col">${incomeAfterAlloc < 0 ? "-" : ""}${fmt(incomeAfterAlloc)}</td>
 									<td style="padding: 8px 12px; background: #f0fdfa; border-bottom: 1px solid #f1f5f9; font-size: 12px; font-weight: 600; color: ${iaaMonthlyColor}; text-align: right;">${monthlyIncomeAfterAlloc < 0 ? "-" : ""}${fmt(monthlyIncomeAfterAlloc)}</td>
-									<td style="padding: 8px 12px; background: #f0fdfa; border-bottom: 1px solid #f1f5f9; font-size: 12px; font-weight: 600; color: ${iaaMonthlyColor}; text-align: right;" class="yeald-col"></td>
+									<td style="padding: 8px 12px; background: #f0fdfa; border-bottom: 1px solid #f1f5f9; font-size: 12px; font-weight: 600; color: ${iaaMonthlyColor}; text-align: right;" class="yeald-col">${monthlyIncomeAfterAlloc < 0 ? "-" : ""}${fmt(monthlyIncomeAfterAlloc)}</td>
 								</tr>`;
 						}
 						tbody.html(html);
 						const anyExpanded = (self.plData || []).some((s) => self.plCollapsed && self.plCollapsed[s.schedule_number] === false);
 						container.find("table.mis-hover-table").toggleClass("pl-show-yeald", anyExpanded);
+						const plAllOpen = (self.plData || []).length > 0 && (self.plData || []).every((s) => self.plCollapsed && self.plCollapsed[s.schedule_number] === false);
 						container.find("#pl-expand-all").text(plAllOpen ? "▲ Collapse All" : "▼ Expand All");
 					};
 					tbody.off("click", ".pl-sch-row").on("click", ".pl-sch-row", function () {
