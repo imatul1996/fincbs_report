@@ -48,6 +48,14 @@ def get_cif_details(cif_id):
         query = """
             SELECT COALESCE(c.cif_id, am.orgkey)            AS cif_id,
                    COALESCE(c.cust_name, am.name)           AS cust_name,      
+                   -- ==================== ACTION TYPE ====================
+                   CASE
+                       WHEN c.cif_id IS NOT NULL AND am.orgkey IS NOT NULL AND am.recordstatus IN ('D', 'F', 'R')
+                           THEN 'MODIFICATION (IN-PROGRESS)'
+                       WHEN aud.mod_maker_id IS NOT NULL OR (c.lchg_time::DATE > c.rcre_time::DATE)
+                           THEN 'MODIFICATION'
+                       ELSE 'CREATION'
+                   END AS action_type,
                    -- ==================== CUSTOMER TYPE ====================
                    CASE
                        WHEN corp.corp_key IS NOT NULL THEN 'CORPORATE'
@@ -57,26 +65,48 @@ def get_cif_details(cif_id):
                    COALESCE(c.primary_sol_id, am.primary_sol_id) AS sol_id,
                    s.sol_desc                                    AS sol_desc,           
                    -- ==================== MAKER DETAILS ====================
-                   COALESCE(c.rcre_user_id, am.assignedto::TEXT) AS maker_id,
+                   CASE
+                       WHEN am.recordstatus IN ('D', 'R')
+                           THEN am.assignedto::TEXT
+                       WHEN aud.mod_maker_id IS NOT NULL
+                           THEN aud.mod_maker_id::TEXT
+                       WHEN c.rcre_user_id IS NOT NULL AND c.rcre_user_id NOT IN ('7', 'FIVUSR')
+                           THEN c.rcre_user_id
+                       ELSE COALESCE(c.rcre_user_id, am.assignedto::TEXT)
+                   END AS maker_id,
                    u_mkr.loginid                            AS maker_login_id,
                    COALESCE(
                        NULLIF(TRIM(g_mkr.emp_name), ''),
                        NULLIF(TRIM(CONCAT(p_mkr.firstname, ' ', p_mkr.lastname)), ''),
                        u_mkr.loginid
                    ) AS maker_name,
-                   TO_CHAR(COALESCE(c.rcre_time, am.tmdate), 'HH24:MI:SS') AS saved_time,
-                   TO_CHAR(COALESCE(c.rcre_time::DATE, am.tmdate::DATE), 'DD-MM-YYYY') AS created_date,          
-                   -- ==================== CHECKER DETAILS ====================
+                   TO_CHAR(COALESCE(c.lchg_time, am.tmdate, c.rcre_time), 'HH24:MI:SS') AS saved_time,
+                   TO_CHAR(COALESCE(aud.mod_date::DATE, c.lchg_time::DATE, am.tmdate::DATE, c.rcre_time::DATE), 'DD-MM-YYYY') AS created_date,          
+                   -- ==================== CHECKER DETAILS (NEVER SAME AS MAKER) ====================
                    CASE
+                       WHEN am.recordstatus = 'F' OR a.recordstatus = 'U'
+                           THEN CASE
+                               WHEN u_chk.loginid = u_mkr.loginid THEN bc.def_checker_id
+                               ELSE COALESCE(u_chk.loginid, bc.def_checker_id)
+                           END
                        WHEN c.entity_cre_flg = 'Y' OR a.recordstatus = 'A'
                            THEN COALESCE(u_appr.loginid, bc.def_checker_id, 'VERIFIED')
                        WHEN am.recordstatus = 'R'
-                           THEN COALESCE(u_appr.loginid, u_chk.loginid, bc.def_checker_id, 'CHECKER')
-                       WHEN am.recordstatus = 'F' OR a.recordstatus = 'U'
-                           THEN COALESCE(u_chk.loginid, bc.def_checker_id, 'PENDING_CHECKER')
+                           THEN COALESCE(u_appr.loginid, bc.def_checker_id, 'CHECKER')
                        ELSE COALESCE(bc.def_checker_id, 'UNASSIGNED')
                    END AS checker_login_id,    
                    CASE
+                       WHEN am.recordstatus = 'F' OR a.recordstatus = 'U'
+                           THEN CASE
+                               WHEN u_chk.loginid = u_mkr.loginid THEN bc.def_checker_name
+                               ELSE COALESCE(
+                                   NULLIF(TRIM(g_chk.emp_name), ''),
+                                   NULLIF(TRIM(CONCAT(p_chk.firstname, ' ', p_chk.lastname)), ''),
+                                   bc.def_checker_name,
+                                   u_chk.loginid,
+                                   bc.def_checker_id
+                               )
+                           END
                        WHEN c.entity_cre_flg = 'Y' OR a.recordstatus = 'A'
                            THEN COALESCE(
                                NULLIF(TRIM(g_appr.emp_name), ''),
@@ -89,35 +119,32 @@ def get_cif_details(cif_id):
                            THEN COALESCE(
                                NULLIF(TRIM(g_appr.emp_name), ''),
                                NULLIF(TRIM(CONCAT(p_appr.firstname, ' ', p_appr.lastname)), ''),
-                               NULLIF(TRIM(g_chk.emp_name), ''),
-                               NULLIF(TRIM(CONCAT(p_chk.firstname, ' ', p_chk.lastname)), ''),
                                NULLIF(TRIM(bc.def_checker_name), ''),
-                               bc.def_checker_id
-                           )
-                       WHEN am.recordstatus = 'F' OR a.recordstatus = 'U'
-                           THEN COALESCE(
-                               NULLIF(TRIM(g_chk.emp_name), ''),
-                               NULLIF(TRIM(CONCAT(p_chk.firstname, ' ', p_chk.lastname)), ''),
-                               NULLIF(TRIM(bc.def_checker_name), ''),
-                               u_chk.loginid,
                                bc.def_checker_id
                            )
                        ELSE COALESCE(NULLIF(TRIM(bc.def_checker_name), ''), 'Branch Supervisor')
                    END AS checker_person_name,
-                   -- >>>>> VERIFIED TIME (REJECTED KE SATH EXACT TIME) <<<<<
+                   -- ==================== VERIFIED TIME & DATE ====================
                    CASE
-                       WHEN c.entity_cre_flg = 'Y' OR a.recordstatus = 'A'
-                           THEN TO_CHAR(c.lchg_time, 'HH24:MI:SS')
+                       WHEN am.recordstatus = 'F' OR a.recordstatus = 'U'
+                           THEN CONCAT('Pending (', TO_CHAR(COALESCE(am.tmdate, c.rcre_time), 'HH24:MI:SS'), ')')
                        WHEN am.recordstatus = 'R'
                            THEN CONCAT('Rejected (', TO_CHAR(COALESCE(c.lchg_time, am.tmdate), 'HH24:MI:SS'), ')')
+                       WHEN c.entity_cre_flg = 'Y' OR a.recordstatus = 'A'
+                           THEN TO_CHAR(c.lchg_time, 'HH24:MI:SS')
+                       WHEN am.recordstatus = 'D' OR a.recordstatus = 'I'
+                           THEN CONCAT('Draft (', TO_CHAR(COALESCE(am.tmdate, c.rcre_time), 'HH24:MI:SS'), ')')
                        ELSE 'Not Verified'
                    END AS verified_time,
-                   -- >>>>> VERIFIED DATE (REJECTED KE SATH EXACT DATE) <<<<<
                    CASE
-                       WHEN c.entity_cre_flg = 'Y' OR a.recordstatus = 'A'
-                           THEN TO_CHAR(c.lchg_time, 'DD-MM-YYYY')
+                       WHEN am.recordstatus = 'F' OR a.recordstatus = 'U'
+                           THEN CONCAT('Pending (', TO_CHAR(COALESCE(am.tmdate::DATE, c.rcre_time::DATE), 'DD-MM-YYYY'), ')')
                        WHEN am.recordstatus = 'R'
                            THEN CONCAT('Rejected (', TO_CHAR(COALESCE(c.lchg_time, am.tmdate), 'DD-MM-YYYY'), ')')
+                       WHEN c.entity_cre_flg = 'Y' OR a.recordstatus = 'A'
+                           THEN TO_CHAR(c.lchg_time, 'DD-MM-YYYY')
+                       WHEN am.recordstatus = 'D' OR a.recordstatus = 'I'
+                           THEN CONCAT('Draft (', TO_CHAR(COALESCE(am.tmdate::DATE, c.rcre_time::DATE), 'DD-MM-YYYY'), ')')
                        ELSE 'Not Verified'
                    END AS verified_date,
                    -- ==================== RAW TECHNICAL STATUS CODES ====================
@@ -128,18 +155,30 @@ def get_cif_details(cif_id):
                    CASE
                        WHEN c.del_flg = 'Y'
                            THEN 'Deleted / Cancelled'
-                       WHEN c.entity_cre_flg = 'Y' OR a.recordstatus = 'A'
-                           THEN 'Verified'
+                       WHEN c.cif_id IS NOT NULL AND am.recordstatus = 'F'
+                           THEN 'Modification (Pending Checker)'
+                       WHEN c.cif_id IS NOT NULL AND am.recordstatus = 'D'
+                           THEN 'Modification (Draft / Maker Tray)'
+                       WHEN c.cif_id IS NOT NULL AND am.recordstatus = 'R'
+                           THEN 'Modification (Rejected by Checker)'
                        WHEN am.recordstatus = 'R'
                            THEN 'Rejected by Checker'
                        WHEN am.recordstatus = 'F' OR a.recordstatus = 'U'
                            THEN 'Unverified (Pending Checker)'
                        WHEN am.recordstatus = 'D' OR a.recordstatus = 'I'
                            THEN 'Unverified (Draft / Maker Tray)'
+                       WHEN c.entity_cre_flg = 'Y' OR a.recordstatus = 'A'
+                           THEN 'Verified'
                        ELSE 'Unverified'
                    END AS exact_status,
                    -- ==================== CURRENT TRAY SUMMARY ====================
                    CASE
+                       WHEN c.cif_id IS NOT NULL AND am.recordstatus = 'F'
+                           THEN CONCAT('Modification Pending with Checker: ', COALESCE(NULLIF(TRIM(g_chk.emp_name), ''), NULLIF(TRIM(CONCAT(p_chk.firstname, ' ', p_chk.lastname)), ''), bc.def_checker_name, u_chk.loginid))
+                       WHEN c.cif_id IS NOT NULL AND am.recordstatus = 'D'
+                           THEN CONCAT('Modification Pending with Maker: ', COALESCE(NULLIF(TRIM(g_mkr.emp_name), ''), NULLIF(TRIM(CONCAT(p_mkr.firstname, ' ', p_mkr.lastname)), ''), u_mkr.loginid))
+                       WHEN c.cif_id IS NOT NULL AND am.recordstatus = 'R'
+                           THEN CONCAT('Modification Rejected - In Maker Tray: ', COALESCE(NULLIF(TRIM(g_mkr.emp_name), ''), u_mkr.loginid))
                        WHEN c.entity_cre_flg = 'Y' OR a.recordstatus = 'A'
                            THEN CONCAT('Verified By: ', COALESCE(NULLIF(TRIM(g_appr.emp_name), ''), NULLIF(TRIM(CONCAT(p_appr.firstname, ' ', p_appr.lastname)), ''), bc.def_checker_name, u_appr.loginid), ' at ', TO_CHAR(c.lchg_time, 'HH24:MI:SS'))
                        WHEN am.recordstatus = 'R'
@@ -160,6 +199,18 @@ def get_cif_details(cif_id):
             LEFT JOIN crmuser.corporate corp
                    ON TRIM(COALESCE(c.cif_id, am.orgkey)) = TRIM(corp.corp_key)
             LEFT JOIN (
+                SELECT DISTINCT ON (TRIM(orgkey))
+                    TRIM(orgkey) AS orgkey,
+                    bocreatedby  AS mod_maker_id,
+                    bomodifiedby AS mod_checker_id,
+                    bodatecreated AS mod_date
+                FROM crmuser.audittrail
+                WHERE bomodifiedby IS NOT NULL
+                  AND bocreatedby != bomodifiedby
+                  AND bocreatedby != 7
+                ORDER BY TRIM(orgkey), auditid DESC
+            ) aud ON TRIM(COALESCE(c.cif_id, am.orgkey)) = aud.orgkey
+            LEFT JOIN (
                 SELECT DISTINCT ON (TRIM(u.sol_id))
                     TRIM(u.sol_id) AS sol_id,
                     u.user_id      AS def_checker_id,
@@ -172,7 +223,14 @@ def get_cif_details(cif_id):
                 ORDER BY TRIM(u.sol_id), u.user_work_class DESC, u.user_id
             ) bc ON TRIM(COALESCE(c.primary_sol_id, am.primary_sol_id)) = bc.sol_id
             LEFT JOIN crmuser.users u_mkr
-                   ON TRIM(COALESCE(c.rcre_user_id, am.assignedto::TEXT)) = u_mkr.personid::TEXT
+                   ON TRIM(
+                       CASE
+                           WHEN am.recordstatus IN ('D', 'R') THEN am.assignedto::TEXT
+                           WHEN aud.mod_maker_id IS NOT NULL THEN aud.mod_maker_id::TEXT
+                           WHEN c.rcre_user_id IS NOT NULL AND c.rcre_user_id NOT IN ('7', 'FIVUSR') THEN c.rcre_user_id
+                           ELSE COALESCE(c.rcre_user_id, am.assignedto::TEXT)
+                       END
+                   ) = u_mkr.personid::TEXT
             LEFT JOIN tbaadm.get g_mkr
                    ON TRIM(u_mkr.loginid) = TRIM(g_mkr.emp_id)
             LEFT JOIN crmuser.person p_mkr
@@ -184,14 +242,14 @@ def get_cif_details(cif_id):
             LEFT JOIN crmuser.person p_chk
                    ON u_chk.personid = p_chk.personid
             LEFT JOIN crmuser.users u_appr
-                   ON TRIM(c.lchg_user_id) = u_appr.personid::TEXT
+                   ON TRIM(COALESCE(c.lchg_user_id, aud.mod_checker_id::TEXT)) = u_appr.personid::TEXT
             LEFT JOIN tbaadm.get g_appr
                    ON TRIM(u_appr.loginid) = TRIM(g_appr.emp_id)
             LEFT JOIN crmuser.person p_appr
                    ON u_appr.personid = p_appr.personid
             WHERE COALESCE(c.del_flg, 'N') = 'N'
               AND TRIM(COALESCE(c.cif_id, am.orgkey)) = %s
-            ORDER BY COALESCE(c.rcre_time::DATE, am.tmdate::DATE) DESC;
+            ORDER BY COALESCE(aud.mod_date::DATE, c.lchg_time::DATE, am.tmdate::DATE, c.rcre_time::DATE) DESC;
         """
         cursor.execute(query, (str(cif_id).strip(),))
         rows = cursor.fetchall()
