@@ -309,7 +309,10 @@
                     <span style="font-size: 13px; color: var(--text-muted); margin-left: 15px;">CIF:</span>
                     <strong style="margin-left: 6px;">{% raw %}{{ currentItem.cif_id }}{% endraw %}</strong>
                 </div>
-                <span class="cif-type-pill">{% raw %}{{ currentItem.cif_type || 'RETAIL' }}{% endraw %}</span>
+                <div style="display: flex; gap: 8px; align-items: center;">
+                    <span class="cif-type-pill" v-if="currentItem.action_type" style="background: #e8f4fd; color: #1a5276;">{% raw %}{{ currentItem.action_type }}{% endraw %}</span>
+                    <span class="cif-type-pill">{% raw %}{{ currentItem.cif_type || 'RETAIL' }}{% endraw %}</span>
+                </div>
             </div>
 
             <!-- 1. Maker Details Table (Up) -->
@@ -425,6 +428,12 @@
             const status = this.currentItem.exact_status || '';
             if (status === 'Verified') {
                 return 'CIF is already Verified.';
+            } else if (status === 'Modification (Pending Checker)') {
+                return 'CIF modification is under verification from checker.';
+            } else if (status === 'Modification (Draft / Maker Tray)') {
+                return 'CIF modification is saved in draft, kindly submit for verification.';
+            } else if (status === 'Modification (Rejected by Checker)') {
+                return 'CIF modification is rejected and in maker tray, please re-submit.';
             } else if (status === 'Under Verification' || status === 'Unverified (Pending Checker)') {
                 return 'CIF is under verification from checker.';
             } else if (status.includes('Saved') || status.includes('Draft')) {
