@@ -80,8 +80,23 @@ def get_cif_details(cif_id):
                        NULLIF(TRIM(CONCAT(p_mkr.firstname, ' ', p_mkr.lastname)), ''),
                        u_mkr.loginid
                    ) AS maker_name,
-                   TO_CHAR(COALESCE(c.lchg_time, am.tmdate, c.rcre_time), 'HH24:MI:SS') AS saved_time,
-                   TO_CHAR(COALESCE(aud.mod_date::DATE, c.lchg_time::DATE, am.tmdate::DATE, c.rcre_time::DATE), 'DD-MM-YYYY') AS created_date,          
+                   -- >>>>> MAKER SAVED / CREATION TIME (ONLY CREATION TIMESTAMP) <<<<<
+                   TO_CHAR(
+                       COALESCE(
+                           CASE WHEN aud.mod_maker_id IS NOT NULL THEN aud.mod_date ELSE NULL END,
+                           c.rcre_time,
+                           am.tmdate
+                       ),
+                       'HH24:MI:SS'
+                   ) AS saved_time,     
+                   TO_CHAR(
+                       COALESCE(
+                           CASE WHEN aud.mod_maker_id IS NOT NULL THEN aud.mod_date::DATE ELSE NULL END,
+                           c.rcre_time::DATE,
+                           am.tmdate::DATE
+                       ),
+                       'DD-MM-YYYY'
+                   ) AS created_date,          
                    -- ==================== CHECKER DETAILS (NEVER SAME AS MAKER) ====================
                    CASE
                        WHEN am.recordstatus = 'F' OR a.recordstatus = 'U'
@@ -131,7 +146,7 @@ def get_cif_details(cif_id):
                        WHEN am.recordstatus = 'F' OR a.recordstatus = 'U'
                            THEN CONCAT('Pending (', TO_CHAR(COALESCE(am.tmdate, c.rcre_time), 'HH24:MI:SS'), ')')
                        WHEN am.recordstatus = 'R'
-                           THEN CONCAT('Rejected (', TO_CHAR(COALESCE(c.lchg_time, am.tmdate), 'HH24:MI:SS'), ')')
+                           THEN CONCAT('Rejected (', TO_CHAR(COALESCE(am.tmdate, c.lchg_time), 'HH24:MI:SS'), ')')
                        WHEN c.entity_cre_flg = 'Y' OR a.recordstatus = 'A'
                            THEN TO_CHAR(c.lchg_time, 'HH24:MI:SS')
                        WHEN am.recordstatus = 'D' OR a.recordstatus = 'I'
@@ -142,7 +157,7 @@ def get_cif_details(cif_id):
                        WHEN am.recordstatus = 'F' OR a.recordstatus = 'U'
                            THEN CONCAT('Pending (', TO_CHAR(COALESCE(am.tmdate::DATE, c.rcre_time::DATE), 'DD-MM-YYYY'), ')')
                        WHEN am.recordstatus = 'R'
-                           THEN CONCAT('Rejected (', TO_CHAR(COALESCE(c.lchg_time, am.tmdate), 'DD-MM-YYYY'), ')')
+                           THEN CONCAT('Rejected (', TO_CHAR(COALESCE(am.tmdate::DATE, c.lchg_time::DATE), 'DD-MM-YYYY'), ')')
                        WHEN c.entity_cre_flg = 'Y' OR a.recordstatus = 'A'
                            THEN TO_CHAR(c.lchg_time, 'DD-MM-YYYY')
                        WHEN am.recordstatus = 'D' OR a.recordstatus = 'I'
