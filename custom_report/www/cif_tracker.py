@@ -64,16 +64,16 @@ def get_cif_details(cif_id):
                    -- ==================== SOL DETAILS ====================
                    COALESCE(c.primary_sol_id, am.primary_sol_id) AS sol_id,
                    s.sol_desc                                    AS sol_desc,           
-                   -- ==================== MAKER DETAILS ====================
-                   CASE
-                       WHEN am.recordstatus IN ('D', 'R')
-                           THEN am.assignedto::TEXT
-                       WHEN aud.mod_maker_id IS NOT NULL
-                           THEN aud.mod_maker_id::TEXT
-                       WHEN c.rcre_user_id IS NOT NULL AND c.rcre_user_id NOT IN ('7', 'FIVUSR')
-                           THEN c.rcre_user_id
-                       ELSE COALESCE(c.rcre_user_id, am.assignedto::TEXT)
-                   END AS maker_id,
+                   -- ==================== MAKER DETAILS (NEVER NULL) ====================
+                   COALESCE(
+                       NULLIF(TRIM(aud.mod_maker_id::TEXT), ''),
+                       CASE WHEN am.recordstatus IN ('D', 'R') THEN NULLIF(TRIM(am.assignedto::TEXT), '') ELSE NULL END,
+                       CASE WHEN c.rcre_user_id NOT IN ('7', 'FIVUSR') THEN NULLIF(TRIM(c.rcre_user_id), '') ELSE NULL END,
+                       CASE WHEN a.bocreatedby NOT IN (7) THEN NULLIF(TRIM(a.bocreatedby::TEXT), '') ELSE NULL END,
+                       NULLIF(TRIM(c.rcre_user_id), ''),
+                       NULLIF(TRIM(am.assignedto::TEXT), ''),
+                       NULLIF(TRIM(a.bocreatedby::TEXT), '')
+                   ) AS maker_id,
                    u_mkr.loginid                            AS maker_login_id,
                    COALESCE(
                        NULLIF(TRIM(g_mkr.emp_name), ''),
@@ -92,7 +92,7 @@ def get_cif_details(cif_id):
                        WHEN c.entity_cre_flg = 'Y' OR a.recordstatus = 'A'
                            THEN COALESCE(u_appr.loginid, bc.def_checker_id, 'VERIFIED')
                        WHEN am.recordstatus = 'R'
-                           THEN COALESCE(u_appr.loginid, bc.def_checker_id, 'CHECKER')
+                           THEN COALESCE(u_chk.loginid, u_appr.loginid, bc.def_checker_id, 'CHECKER')
                        ELSE COALESCE(bc.def_checker_id, 'UNASSIGNED')
                    END AS checker_login_id,    
                    CASE
@@ -117,9 +117,11 @@ def get_cif_details(cif_id):
                            )
                        WHEN am.recordstatus = 'R'
                            THEN COALESCE(
+                               NULLIF(TRIM(g_chk.emp_name), ''),
+                               NULLIF(TRIM(CONCAT(p_chk.firstname, ' ', p_chk.lastname)), ''),
                                NULLIF(TRIM(g_appr.emp_name), ''),
                                NULLIF(TRIM(CONCAT(p_appr.firstname, ' ', p_appr.lastname)), ''),
-                               NULLIF(TRIM(bc.def_checker_name), ''),
+                               bc.def_checker_name,
                                bc.def_checker_id
                            )
                        ELSE COALESCE(NULLIF(TRIM(bc.def_checker_name), ''), 'Branch Supervisor')
@@ -224,19 +226,22 @@ def get_cif_details(cif_id):
             ) bc ON TRIM(COALESCE(c.primary_sol_id, am.primary_sol_id)) = bc.sol_id
             LEFT JOIN crmuser.users u_mkr
                    ON TRIM(
-                       CASE
-                           WHEN am.recordstatus IN ('D', 'R') THEN am.assignedto::TEXT
-                           WHEN aud.mod_maker_id IS NOT NULL THEN aud.mod_maker_id::TEXT
-                           WHEN c.rcre_user_id IS NOT NULL AND c.rcre_user_id NOT IN ('7', 'FIVUSR') THEN c.rcre_user_id
-                           ELSE COALESCE(c.rcre_user_id, am.assignedto::TEXT)
-                       END
+                       COALESCE(
+                           NULLIF(TRIM(aud.mod_maker_id::TEXT), ''),
+                           CASE WHEN am.recordstatus IN ('D', 'R') THEN NULLIF(TRIM(am.assignedto::TEXT), '') ELSE NULL END,
+                           CASE WHEN c.rcre_user_id NOT IN ('7', 'FIVUSR') THEN NULLIF(TRIM(c.rcre_user_id), '') ELSE NULL END,
+                           CASE WHEN a.bocreatedby NOT IN (7) THEN NULLIF(TRIM(a.bocreatedby::TEXT), '') ELSE NULL END,
+                           NULLIF(TRIM(c.rcre_user_id), ''),
+                           NULLIF(TRIM(am.assignedto::TEXT), ''),
+                           NULLIF(TRIM(a.bocreatedby::TEXT), '')
+                       )
                    ) = u_mkr.personid::TEXT
             LEFT JOIN tbaadm.get g_mkr
                    ON TRIM(u_mkr.loginid) = TRIM(g_mkr.emp_id)
             LEFT JOIN crmuser.person p_mkr
                    ON u_mkr.personid = p_mkr.personid
             LEFT JOIN crmuser.users u_chk
-                   ON am.assignedto = u_chk.personid
+                   ON COALESCE(am.assignedto, am.bomodifiedby) = u_chk.personid
             LEFT JOIN tbaadm.get g_chk
                    ON TRIM(u_chk.loginid) = TRIM(g_chk.emp_id)
             LEFT JOIN crmuser.person p_chk
