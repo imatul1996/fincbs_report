@@ -939,11 +939,15 @@ def get_sahayog_dashboard(
     
     month_keys = [m[0] for m in months]
     
-    # Merge UI filters with User Permissions
+    # Separate UI filters and permission restrictions so we can compute branch segments
+    # against the full/UI-filtered peer set while still returning only permitted branches.
+    ui_filters = {}
     combined_filters = {}
+    permitted_sol_ids_set = None
     if perms["is_restricted"]:
         permitted_sols = get_permitted_sol_ids_for_user(perms)
         if permitted_sols is not None:
+            permitted_sol_ids_set = set(str(s) for s in (permitted_sols or []))
             combined_filters["sol_id"] = ["in", permitted_sols if permitted_sols else ["_NONE_"]]
 
     if filters:
@@ -954,7 +958,9 @@ def get_sahayog_dashboard(
                 matched_ui_zones = get_matching_location_values(
                     "Branch Category Report", "zone", ui_zones
                 )
-                combined_filters["zone"] = ["in", matched_ui_zones] if matched_ui_zones else ["in", ["_NONE_"]]
+                zone_filter = ["in", matched_ui_zones] if matched_ui_zones else ["in", ["_NONE_"]]
+                ui_filters["zone"] = zone_filter
+                combined_filters["zone"] = zone_filter
         except:
             pass
     
@@ -964,12 +970,14 @@ def get_sahayog_dashboard(
         allowed_sol_ids = get_permitted_sol_ids_for_user(perms)
         
     targets_map = get_targets_map(financial_year, target_type, month_keys, allowed_sol_ids)
+    segment_targets_map = get_targets_map(financial_year, target_type, month_keys, None) if permitted_sol_ids_set is not None else targets_map
     
     # Build sol_id -> district mapping from Sahayog Branch
     branches_map = get_sahayog_branches_cached()
     district_map = {sid: b["district"] or "Unknown District" for sid, b in branches_map.items()}
     
     all_branch_data = []
+    all_branch_data_for_ranking = []
     start_year = int(financial_year.split("-")[0])
 
     def passes_filters(rec, filters):
@@ -1005,16 +1013,23 @@ def get_sahayog_dashboard(
             if not rec.get("region") and branch_info.get("region"):
                 rec["region"] = branch_info["region"]
                 
-            if not passes_filters(rec, combined_filters):
+            # Ranking dataset respects UI filters but ignores permission SOL restriction
+            if not passes_filters(rec, ui_filters):
                 continue
-                
+            all_branch_data_for_ranking.append(rec)
+
+            # Response dataset respects permission SOL restriction
+            if permitted_sol_ids_set is not None and sol_id not in permitted_sol_ids_set:
+                continue
+
             all_branch_data.append(rec)
     
     eff_selected_date = months[-1][3] if months else selected_date
     zone_wise = build_zone_wise(all_branch_data, targets_map, target_type, district_map)
     product_wise_result, all_products = build_product_wise(all_branch_data, targets_map, target_type, eff_selected_date, combined_filters)
     category_wise = build_category_wise(all_branch_data, targets_map, months, target_type)
-    branch_wise = build_branch_wise(all_branch_data, targets_map, months, target_type, district_map)
+    branch_segment_lookup = build_branch_segment_lookup(all_branch_data_for_ranking, segment_targets_map, months, target_type)
+    branch_wise = build_branch_wise(all_branch_data, targets_map, months, target_type, district_map, segment_lookup=branch_segment_lookup)
     agent_wise = build_agent_wise(eff_selected_date, perms)
 
     return {
@@ -1488,9 +1503,72 @@ def build_category_wise(branch_data, targets_map, months, target_type):
     return out
 
 
-def build_branch_wise(branch_data, targets_map, months, target_type, district_map=None):
+def _build_branch_month_metrics(branch_data, targets_map, months, target_type):
+    """Build per-sol_id, per-month achievement/percentage metrics for segment ranking."""
+    metrics = defaultdict(dict)
+    for month_key, month_num, year, current_date in months:
+        for row in branch_data:
+            if row.get("month_key") != month_key:
+                continue
+            sol_id = str(row.get("sol_id") or "")
+            ach = float(row.get("achievement") or 0) if target_type == "Monthly" else float(row.get("yearly_achievement") or 0)
+            tgt = targets_map[sol_id][month_key]
+            pct = (ach / tgt * 100) if tgt > 0 else 0
+            metrics[sol_id][month_key] = {
+                "achievement": ach,
+                "percentage": pct,
+            }
+    return metrics
+
+
+def build_branch_segment_lookup(branch_data, targets_map, months, target_type):
+    """
+    Compute performance segment per branch per month from the provided (ranking) dataset.
+    Mirrors frontend quartile logic: rank by percentage desc, split into 4 bands when total >= 4.
+    """
+    metrics = _build_branch_month_metrics(branch_data, targets_map, months, target_type)
+    lookup = defaultdict(dict)
+
+    for month_key, month_num, year, current_date in months:
+        rows = []
+        for sol_id, month_metrics in metrics.items():
+            if month_key not in month_metrics:
+                continue
+            m = month_metrics[month_key]
+            rows.append({
+                "sol_id": sol_id,
+                "percentage": m.get("percentage", 0) or 0,
+                "achievement": m.get("achievement", 0) or 0,
+            })
+
+        rows.sort(key=lambda r: (r["percentage"], r["achievement"]), reverse=True)
+        total = len(rows)
+
+        for index, r in enumerate(rows):
+            if total < 4:
+                segment = "N/A"
+            else:
+                top25_index = int(total * 0.25)
+                next25_index = int(total * 0.5)
+                mid25_index = int(total * 0.75)
+                if index < top25_index:
+                    segment = "Top 25%"
+                elif index < next25_index:
+                    segment = "Next 25%"
+                elif index < mid25_index:
+                    segment = "Mid 25%"
+                else:
+                    segment = "Bottom 25%"
+            lookup[r["sol_id"]][month_key] = segment
+
+    return lookup
+
+
+def build_branch_wise(branch_data, targets_map, months, target_type, district_map=None, segment_lookup=None):
     if district_map is None:
         district_map = {}
+    if segment_lookup is None:
+        segment_lookup = {}
     branch_map = defaultdict(lambda: {"branch": "", "zone": "", "region": "", "district": "", "months": {}})
     
     for month_key, month_num, year, current_date in months:
@@ -1520,7 +1598,8 @@ def build_branch_wise(branch_data, targets_map, months, target_type, district_ma
                 "category": cat,
                 "target": round(tgt, 2),
                 "achievement": round(ach, 2),
-                "percentage": round(pct, 2)
+                "percentage": round(pct, 2),
+                "performance_segment": (segment_lookup.get(sol_id) or {}).get(month_key, "N/A"),
             }
             
             if sol_id in previous_data:
@@ -1604,6 +1683,16 @@ def build_agent_wise(selected_date=None, perms=None):
     
     # Apply zone/region restrictions from Report Preference
     if perms and perms.get("is_restricted"):
+        has_scope = bool(
+            perms.get("zones")
+            or perms.get("regions")
+            or perms.get("districts")
+            or perms.get("sol_ids")
+            or perms.get("all_regions")
+        )
+        if not has_scope:
+            return []
+
         allowed_zones = set()
         allowed_regions = set()
         
@@ -1656,6 +1745,10 @@ def build_agent_wise(selected_date=None, perms=None):
                 placeholders = ", ".join(["%s"] * len(allowed_regions))
                 where_clauses.append(f"region IN ({placeholders})")
                 params.extend(list(allowed_regions))
+
+        # If scope is configured but cannot be resolved to zone/region filters, show nothing.
+        if not allowed_zones and not allowed_regions and not perms.get("all_regions"):
+            return []
     
     where_sql = " AND ".join(where_clauses)
     

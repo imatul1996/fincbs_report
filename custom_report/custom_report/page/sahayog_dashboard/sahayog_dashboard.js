@@ -10278,6 +10278,9 @@ class DrishtiDashboard {
 				this.userSolId = emp ? (emp.sahayog_branch || null) : null;
 				if (isBranchManager) {
 					if (this.branchData && this.userSolId) {
+						if (!this.branchDataAll) {
+							this.branchDataAll = [...this.branchData];
+						}
 						const targetSol = String(this.userSolId).trim();
 						this.branchData = this.branchData.filter((branch) => {
 							const bSol = String(branch.sol_id || branch.name || "").trim();
@@ -11885,7 +11888,8 @@ class DrishtiDashboard {
 		this.productData = data.product_wise || [];
 		this.allProducts = data.all_products || [];
 		this.categoryData = data.category_wise;
-		this.branchData = data.branch_wise || [];
+		this.branchDataAll = data.branch_wise || [];
+		this.branchData = [...this.branchDataAll];
 		if (this.isBranchManager && this.userSolId) {
 			const targetSol = String(this.userSolId).trim();
 			this.branchData = this.branchData.filter((branch) => {
@@ -14155,7 +14159,15 @@ class DrishtiDashboard {
 	}
 
 	getFilteredBranches(customBranchData, ignoreCategoryFilter = false) {
-		let filtered = (customBranchData || this.branchData) ? [...(customBranchData || this.branchData)] : [];
+		const sourceBranches = (customBranchData || this.branchData) ? [...(customBranchData || this.branchData)] : [];
+		let filtered = [...sourceBranches];
+
+		// Compute segments from the full peer set so a branch keeps its actual
+		// segment even when filters/search narrow results (e.g. BM view, SOL search).
+		const segmentSourceBranches = customBranchData || this.branchDataAll || this.branchData || [];
+		if (segmentSourceBranches.length > 0) {
+			this.assignPerformanceSegments([...segmentSourceBranches]);
+		}
 
 		if (this.isBranchManager && this.userSolId) {
 			const targetSol = String(this.userSolId).trim();
@@ -14247,8 +14259,20 @@ class DrishtiDashboard {
 			}
 		}
 
-		// 6. Performance segment filter — segments assigned on the full filtered set
-		this.assignPerformanceSegments(filtered);
+		// Prefer server-computed segment (available even when user has restricted branch data)
+		const segmentMonthKey =
+			this.state.selectedMonth ||
+			(this.months && this.months.length > 0 ? this.months[this.months.length - 1].key : null);
+		if (segmentMonthKey) {
+			filtered.forEach((branch) => {
+				const serverSeg = branch?.months?.[segmentMonthKey]?.performance_segment;
+				if (serverSeg) {
+					branch.performanceSegment = serverSeg;
+				}
+			});
+		}
+
+		// 6. Performance segment filter (uses segments computed from the full peer set / server)
 		if (this.state.selectedSegment && this.state.selectedSegment !== "all") {
 			filtered = filtered.filter(
 				(branch) => branch.performanceSegment === this.state.selectedSegment,
@@ -17936,6 +17960,16 @@ class DrishtiDashboard {
 		}
 
 		// --- Performance Segmentation is assigned (and filtered) upstream in getFilteredBranches() ---
+		// Prefer server-provided per-month segments when available.
+		const segMonthKey =
+			this.state.selectedMonth ||
+			(this.months && this.months.length > 0 ? this.months[this.months.length - 1].key : null);
+		if (segMonthKey) {
+			branchData.forEach((b) => {
+				const serverSeg = b?.months?.[segMonthKey]?.performance_segment;
+				if (serverSeg) b.performanceSegment = serverSeg;
+			});
+		}
 		// Defensive re-assign only if segments are missing (e.g. called with raw data).
 		if (branchData.length > 0 && branchData.some((b) => !b.performanceSegment)) {
 			this.assignPerformanceSegments(branchData);
@@ -18329,34 +18363,26 @@ class DrishtiDashboard {
 		const totalAch = totals.ach;
 		const totalTarget = totals.target;
 		const drrDate = this.state.selectedDate ? new Date(this.state.selectedDate) : new Date();
-		const daysElapsed = drrDate.getDate();
-
-		// Remaining working days always counted from TODAY (inclusive) so the
-		// Required DRR divisor matches the real days left in the month
-		const today = new Date();
-		const todayYear = today.getFullYear();
-		const todayMonth = today.getMonth();
-		const todayDay = today.getDate();
+		const drrYear = drrDate.getFullYear();
+		const drrMonth = drrDate.getMonth();
+		const daysElapsed = drrDate.getDate(); // calendar days elapsed in month (till selected date)
 
 		// Holidays not loaded yet - render provisional value, re-render when they arrive
-		if (DRISHTI_HOLIDAYS[todayYear] === undefined) {
-			loadDrishtiHolidays(todayYear).then(() => {
+		if (DRISHTI_HOLIDAYS[drrYear] === undefined) {
+			loadDrishtiHolidays(drrYear).then(() => {
 				if (this._drrTotals) this.renderDrrCards();
 			});
 		}
 
-		const remainingWorkingDays = getRemainingWorkingDaysExcludingSundays(todayYear, todayMonth, todayDay);
-
-		// Actual DRR = Achievement Till Date / Working Days Elapsed in the month
-		// (excludes Sundays, 2nd/4th Saturdays + state holidays; Oct 12 -> 8 days)
-		const elapsedWorkingDays = getElapsedWorkingDays(drrDate.getFullYear(), drrDate.getMonth(), daysElapsed);
-		const actualDrr = elapsedWorkingDays > 0 ? totalAch / elapsedWorkingDays : null;
+		// Actual DRR = Monthly Achievement Till Date / Number of Days Elapsed in a month (calendar days)
+		const actualDrr = daysElapsed > 0 ? totalAch / daysElapsed : null;
 		this.page.main
 			.find("#summary-actual-drr")
 			.text(actualDrr != null ? "₹" + this.formatCurrency(actualDrr) : "-");
 
 		// Required DRR = (Monthly Target - Achievement Till Date) / Remaining Working Days
-		// (excludes Sundays + 2nd/4th Saturdays + national/state holidays)
+		// Remaining working days from selected date to month-end (excl. Sundays, 2nd/4th Saturdays, holidays)
+		const remainingWorkingDays = getRemainingWorkingDaysExcludingSundays(drrYear, drrMonth, daysElapsed);
 		const requiredGap = Math.max(0, totalTarget - totalAch);
 		const requiredDrr = remainingWorkingDays > 0 ? requiredGap / remainingWorkingDays : null;
 		this.page.main
