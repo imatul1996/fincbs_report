@@ -142,8 +142,8 @@ def get_cif_details(cif_id):
                        ELSE COALESCE(NULLIF(TRIM(bc.def_checker_name), ''), 'Branch Supervisor')
                    END AS checker_person_name,
                    -- Checker Posting Branch:
-                   COALESCE(u_chk_upr.sol_id, bc.sol_id)         AS checker_sol_id,
-                   COALESCE(s_chk.sol_desc, s.sol_desc)          AS checker_sol_desc,
+                   COALESCE(u_chk_upr.sol_id, u_appr_upr.sol_id, bc.sol_id)         AS checker_sol_id,
+                   COALESCE(s_chk.sol_desc, s_appr.sol_desc, s.sol_desc)            AS checker_sol_desc,
                    -- ==================== 6. VERIFIED TIME & DATE (STATUS + TIMESTAMP) ====================
                    CASE
                        WHEN am.recordstatus = 'F' OR a.recordstatus = 'U'
@@ -285,6 +285,12 @@ def get_cif_details(cif_id):
                    ON TRIM(u_appr.loginid) = TRIM(g_appr.emp_id)
             LEFT JOIN crmuser.person p_appr
                    ON u_appr.personid = p_appr.personid
+            -- Approver ki branch nikaalne ke liye:
+            LEFT JOIN tbaadm.upr u_appr_upr
+                   ON TRIM(u_appr.loginid) = TRIM(u_appr_upr.user_id)
+                  AND u_appr_upr.del_flg = 'N'
+            LEFT JOIN tbaadm.sol s_appr
+                   ON TRIM(u_appr_upr.sol_id) = TRIM(s_appr.sol_id)
             WHERE COALESCE(c.del_flg, 'N') = 'N'
               AND TRIM(COALESCE(c.cif_id, am.orgkey)) = %s
             ORDER BY COALESCE(aud.mod_date::DATE, c.lchg_time::DATE, am.tmdate::DATE, c.rcre_time::DATE) DESC;
