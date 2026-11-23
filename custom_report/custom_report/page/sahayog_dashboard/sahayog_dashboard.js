@@ -10339,6 +10339,49 @@ class DrishtiDashboard {
 		return fallback ? fallback.id : "";
 	}
 
+	getTabDataSource(mode, tabId, reportObj = null) {
+		if (reportObj) {
+			const explicit = reportObj.sourceDoctype || reportObj.dataSourceDoctype || reportObj.doctypeSource;
+			if (explicit) return explicit;
+		}
+
+		const drishtiMap = {
+			zone: "Branch Category Report, Target Vs Achivement, Sahayog Branch",
+			category: "Branch Category Report, Target Vs Achivement, Sahayog Branch",
+			branch: "Branch Category Report, Target Vs Achivement, Sahayog Branch",
+			product: "Product Wise Report",
+			agent: "Agent  Wise Report",
+			product_tgt_ach: "Product Wise Report, Target Vs Achivement",
+		};
+
+		if (mode === "drishti") {
+			return drishtiMap[tabId] || "-";
+		}
+
+		const misMap = {
+			rd_smbg_pending: "RD Collection (Finacle) / SMBG data (as per MIS report source)",
+			staff_productivity: "Staff Productivity (as per MIS report source)",
+			portfolio_summary: "Portfolio Summary (as per MIS report source)",
+			agent_wise_demand_collection: "Agent  Wise Report / Demand Collection (as per MIS report source)",
+			agent_wise_ss_vs: "SS and VS Report",
+			crm_lead_conversion: "CRM Lead (as per MIS report source)",
+		};
+
+		return misMap[tabId] || (reportObj && (reportObj.doctype || reportObj.source)) || "As per MIS report configuration";
+	}
+
+	applyAdminTabTooltips() {
+		if (!this._isAdmin()) return;
+		const self = this;
+
+		this.page.main.find(".tab-btn[data-tab]").each(function () {
+			const tabId = $(this).data("tab");
+			const tabName = $(this).text().replace(/\s+/g, " ").trim();
+			const source = self.getTabDataSource("drishti", tabId);
+			$(this).attr("title", `Tab: ${tabName}\nDocType: ${source}`);
+		});
+	}
+
 	renderActiveTab() {
 		// Fix for checkUserDesignation: re-render current branch tab after BM filtering
 		try {
@@ -12334,13 +12377,14 @@ class DrishtiDashboard {
 
 				tabSelectorContainer.append(`
 					<div class="mis-report-dropdown" data-child-ids="${childIds}" style="position: relative; display: inline-block;">
-						<button class="mis-report-tab-btn mis-dropdown-toggle ${isActive ? "active" : ""}" data-selected-child="${selectedChildId}" style="display: inline-flex; align-items: center; gap: 4px;">
+						<button class="mis-report-tab-btn mis-dropdown-toggle ${isActive ? "active" : ""}" data-selected-child="${selectedChildId}" ${self._isAdmin() ? `title="Tab: ${frappe.utils.escape_html(report.name || "")}&#10;DocType: ${frappe.utils.escape_html(self.getTabDataSource("mis", selectedChildId, selectedChild))}"` : ""} style="display: inline-flex; align-items: center; gap: 4px;">
 							${report.name} <span style="font-size: 10px; margin-left: 2px;">▾</span>
 						</button>
 						<div class="mis-dropdown-menu" style="display: none; position: absolute; top: 100%; left: 0; min-width: 280px; background: #fff; border: 1px solid #cbd5e1; border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.12); z-index: 100; padding: 4px; margin-top: 4px;">
 							${report.children.map(childId => {
 					const child = self.misReportsList.find(r => r.id === childId);
-					return `<button class="mis-dropdown-item ${childId === activeReportId ? "active" : ""}" data-report-id="${childId}">${child.name}</button>`;
+					const childTitle = self._isAdmin() ? ` title="Tab: ${frappe.utils.escape_html((child && child.name) || "")}&#10;DocType: ${frappe.utils.escape_html(self.getTabDataSource("mis", childId, child))}"` : "";
+					return `<button class="mis-dropdown-item ${childId === activeReportId ? "active" : ""}" data-report-id="${childId}"${childTitle}>${child ? child.name : childId}</button>`;
 				}).join("")}
 						</div>
 					</div>
@@ -12349,8 +12393,9 @@ class DrishtiDashboard {
 				const isChildOfGroup = this.misReportsList.some(r => r.type === "group" && r.children && r.children.includes(report.id));
 				if (isChildOfGroup) return;
 				const activeClass = report.id === activeReportId ? "active" : "";
+				const tabTitle = self._isAdmin() ? ` title="Tab: ${frappe.utils.escape_html(report.name || "")}&#10;DocType: ${frappe.utils.escape_html(self.getTabDataSource("mis", report.id, report))}"` : "";
 				tabSelectorContainer.append(`
-					<button class="mis-report-tab-btn ${activeClass}" data-report-id="${report.id}">
+					<button class="mis-report-tab-btn ${activeClass}" data-report-id="${report.id}"${tabTitle}>
 						${report.name}
 					</button>
 				`);
@@ -12385,6 +12430,14 @@ class DrishtiDashboard {
 			$dropdown.find(".mis-dropdown-menu").hide();
 			self.mis_container.find(".mis-report-tab-btn.active, .mis-dropdown-toggle.active").removeClass("active");
 			$dropdown.find(".mis-dropdown-toggle").addClass("active");
+			if (self._isAdmin()) {
+				const child = (self.misReportsList || []).find(r => r.id === reportId);
+				const childName = (child && child.name) || $(this).text().replace(/\s+/g, " ").trim();
+				$dropdown.find(".mis-dropdown-toggle").attr(
+					"title",
+					`Tab: ${childName}\nDocType: ${self.getTabDataSource("mis", reportId, child)}`
+				);
+			}
 			self.state.selectedMisReport = reportId;
 			self.updateUrlFromState();
 			self.renderMisReport(reportId);
@@ -13189,6 +13242,7 @@ class DrishtiDashboard {
 		$(html).appendTo(this.drishti_container);
 		this.attachTabEvents();
 		this.applyBranchManagerRestrictions();
+		this.applyAdminTabTooltips();
 	}
 
 	attachTabEvents() {
