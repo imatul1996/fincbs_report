@@ -370,8 +370,8 @@
                             <tr>
                                 <td style="font-weight: 700; color: var(--primary);">{{ currentItem.checker_login_id || '-' }}</td>
                                 <td style="font-weight: 500;">{{ currentItem.checker_person_name || '-' }}</td>
-                                <td>{{ currentItem.sol_id || '-' }}</td>
-                                <td>{{ currentItem.sol_desc || '-' }}</td>
+                                <td>{{ currentItem.checker_sol_id || currentItem.sol_id || '-' }}</td>
+                                <td>{{ currentItem.checker_sol_desc || currentItem.sol_desc || '-' }}</td>
                                 <td>{{ currentItem.verified_time || '-' }}</td>
                                 <td>{{ currentItem.verified_date || '-' }}</td>
                             </tr>
