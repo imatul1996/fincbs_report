@@ -267,6 +267,7 @@
 </head>
 <body>
 
+    <!-- Cif Tracker details -->
 <div class="container" id="app" v-cloak>
     <div class="header">
         <a href="/app/sahayog-home" class="btn-home">
@@ -317,9 +318,7 @@
 
             <!-- 1. Maker Details Table (Up) -->
             <div class="section-box">
-                <div class="section-title">
-                    <span>👤</span> Maker Details
-                </div>
+                <div class="section-title"> <span>👤</span> Maker Details </div>
                 <div style="overflow-x: auto;">
                     <table class="data-table">
                         <thead>
@@ -418,7 +417,7 @@
         },
         get showCheckerTable() {
             const status = this.currentItem.exact_status || '';
-            // Only hide checker table if it is draft / saved in maker tray / incomplete
+            // Hide checker details if the record is still in draft / saved in maker tray / incomplete
             if (status.includes('Saved') || status.includes('Draft')) {
                 return false;
             }

@@ -31,6 +31,7 @@ def check_user_access():
         
     return False
 
+# API endpoint to fetch CIF details
 @frappe.whitelist()
 def get_cif_details(cif_id):
     # Security check for API call
@@ -69,15 +70,15 @@ def get_cif_details(cif_id):
                    s.sol_desc                                    AS sol_desc,           
                    -- ==================== 4. MAKER DETAILS (NEVER NULL) ====================
                    COALESCE(
-                       -- A. Audit Trail me Recent Human Modifier (e.g. Siya Meshram 418460):
+                       -- Priority A: Recent human modifier identified in Audit Trail (e.g., 418460):
                        NULLIF(TRIM(aud.mod_maker_id::TEXT), ''),
-                       -- B. accounts_mod me Maker assigned ho (D ya R me non-null):
+                       -- Priority B: Maker assigned in accounts_mod (non-null in Draft "D" or Rejected "R" status):
                        CASE WHEN am.recordstatus IN ('D', 'R') THEN NULLIF(TRIM(am.assignedto::TEXT), '') ELSE NULL END,
-                       -- C. Core Creation User (agar FIVUSR/7 nahi hai toh e.g. Puja Thakur 413860):
+                       -- Priority C: Core system creator ID excluding system users (excludes "7" and "FIVUSR"):
                        CASE WHEN c.rcre_user_id NOT IN ('7', 'FIVUSR') THEN NULLIF(TRIM(c.rcre_user_id), '') ELSE NULL END,
-                       -- D. CRM Accounts Creator (bocreatedby e.g. 413860):
+                       -- Priority D: CRM accounts creator ID (excludes system ID 7):
                        CASE WHEN a.bocreatedby NOT IN (7) THEN NULLIF(TRIM(a.bocreatedby::TEXT), '') ELSE NULL END,
-                       -- E. Fallbacks:
+                       -- Priority E: Fallback user references in sequence:
                        NULLIF(TRIM(c.rcre_user_id), ''),
                        NULLIF(TRIM(am.assignedto::TEXT), ''),
                        NULLIF(TRIM(a.bocreatedby::TEXT), '')
@@ -102,7 +103,7 @@ def get_cif_details(cif_id):
                        -- B. Already Verified:
                        WHEN c.entity_cre_flg = 'Y' OR a.recordstatus = 'A'
                            THEN COALESCE(u_appr.loginid, bc.def_checker_id, 'VERIFIED')
-                       -- C. Rejected by Checker (Rejector e.g. Samit Ingale 419500):
+                       -- C. Rejected by Checker (displays rejecting user):
                        WHEN am.recordstatus = 'R'
                            THEN COALESCE(u_chk.loginid, u_appr.loginid, bc.def_checker_id, 'CHECKER')
                        -- D. Draft:
@@ -266,7 +267,7 @@ def get_cif_details(cif_id):
                    ON TRIM(u_mkr.loginid) = TRIM(g_mkr.emp_id)
             LEFT JOIN crmuser.person p_mkr
                    ON u_mkr.personid = p_mkr.personid
-            -- Specifically Assigned Checker (Reject karne wale Checker ko bhi pick karega):
+            -- Specifically Assigned Checker (captures assigned checker as well as the rejector):
             LEFT JOIN crmuser.users u_chk
                    ON COALESCE(am.assignedto, am.bomodifiedby) = u_chk.personid
             LEFT JOIN tbaadm.get g_chk
