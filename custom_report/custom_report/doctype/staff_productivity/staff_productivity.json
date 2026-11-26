@@ -2,7 +2,7 @@
  "actions": [],
  "autoname": "hash",
  "creation": "2026-09-28 11:13:28.371372",
- "default_view": "Report",
+ "default_view": "List",
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
@@ -446,7 +446,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-09-30 16:49:52.618386",
+ "modified": "2026-11-26 12:19:14.994322",
  "modified_by": "Administrator",
  "module": "custom_report",
  "name": "Staff Productivity",

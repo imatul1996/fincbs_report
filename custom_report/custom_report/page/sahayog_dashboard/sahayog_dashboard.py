@@ -148,7 +148,7 @@ def get_sahayog_branches_cached():
     if cached_data:
         return cached_data
         
-    branches = frappe.get_all(
+    branches = frappe.db.get_all(
         "Sahayog Branch",
         fields=["name as sol_id", "branch as branch_name", "zone", "region", "district"]
     )

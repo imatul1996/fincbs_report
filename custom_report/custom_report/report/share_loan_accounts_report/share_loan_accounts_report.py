@@ -1,12 +1,14 @@
 import frappe
 from frappe import _
+from frappe.utils import flt
 
 
 def execute(filters=None):
 	filters = filters or {}
 	columns = get_columns()
 	data = get_data(filters)
-	return columns, data
+	report_summary = get_report_summary(data)
+	return columns, data, None, None, report_summary
 
 
 def get_columns():
@@ -22,6 +24,13 @@ def get_columns():
 			"fieldname": "name",
 			"fieldtype": "Data",
 			"width": 170,
+		},
+		{
+			"label": _("Share Application"),
+			"fieldname": "parent",
+			"fieldtype": "Link",
+			"options": "Share Application",
+			"width": 150,
 		},
 		{"label": _("Loan Account Number"), "fieldname": "loan_acct_num", "fieldtype": "Data", "width": 150},
 		{"label": _("CASA Account Number"), "fieldname": "casa_acct_num", "fieldtype": "Data", "width": 150},
@@ -116,3 +125,44 @@ def get_data(filters):
 		values,
 		as_dict=True,
 	)
+
+
+def get_report_summary(data):
+	total_accounts = len(data)
+	closed_accounts = sum(1 for row in data if row.get("acct_cls_date"))
+	eligible_count = sum(1 for row in data if row.get("refund_status") == "Eligible")
+	success_count = sum(1 for row in data if row.get("refund_status") == "Success")
+	total_tran_amt = sum(flt(row.get("tran_amt")) for row in data)
+
+	return [
+		{
+			"value": total_accounts,
+			"label": _("Total Accounts"),
+			"datatype": "Int",
+			"indicator": "Blue",
+		},
+		{
+			"value": closed_accounts,
+			"label": _("Closed Accounts"),
+			"datatype": "Int",
+			"indicator": "Red",
+		},
+		{
+			"value": eligible_count,
+			"label": _("Eligible for Refund"),
+			"datatype": "Int",
+			"indicator": "Blue",
+		},
+		{
+			"value": success_count,
+			"label": _("Refund Success"),
+			"datatype": "Int",
+			"indicator": "Green",
+		},
+		{
+			"value": total_tran_amt,
+			"label": _("Total Tran Amount"),
+			"datatype": "Currency",
+			"indicator": "Orange",
+		},
+	]

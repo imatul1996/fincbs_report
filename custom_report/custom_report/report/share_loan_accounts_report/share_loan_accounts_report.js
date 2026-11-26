@@ -52,10 +52,24 @@ frappe.query_reports["Share Loan Accounts Report"] = {
 					background: var(--subtle-fg, #f4f5f6) !important;
 				}
 				.report-wrapper .dt-scrollable .dt-row:hover .dt-cell {
-					background-color: #f1f5f9 !important;
+					background-color: var(--control-bg, #f1f5f9) !important;
 				}
 				.report-wrapper .dt-scrollable .dt-row:hover .dt-cell--col-1 {
-					background-color: #f1f5f9 !important;
+					background-color: var(--control-bg, #f1f5f9) !important;
+				}
+				.share-loan-closed-cell {
+					background-color: rgba(239, 68, 68, 0.08);
+					color: var(--red-600, #991b1b);
+					font-weight: 600;
+					padding: 2px 6px;
+					margin: -2px -6px;
+				}
+				.share-loan-success-cell {
+					background-color: rgba(34, 197, 94, 0.12);
+					color: var(--green-700, #15803d);
+					font-weight: 600;
+					padding: 2px 6px;
+					margin: -2px -6px;
 				}
 			`;
 			document.head.appendChild(style);
@@ -70,6 +84,15 @@ frappe.query_reports["Share Loan Accounts Report"] = {
 
 	formatter(value, row, column, data, default_formatter) {
 		value = default_formatter(value, row, column, data);
+		const row_cell_class =
+			data && data.refund_status === "Success"
+				? "share-loan-success-cell"
+				: data && data.acct_cls_date
+					? "share-loan-closed-cell"
+					: "";
+		const wrap_cell = (content) =>
+			row_cell_class ? `<div class="${row_cell_class}">${content}</div>` : content;
+
 		if (column.fieldname === "certificate" && data && data.parent) {
 			window.__share_loan_report_rows = window.__share_loan_report_rows || {};
 			const key = String(data.name || data.loan_acct_num || data.parent);
@@ -82,15 +105,21 @@ frappe.query_reports["Share Loan Accounts Report"] = {
 			};
 			const safe_key = frappe.utils.escape_html(key);
 			const btn = `<button type="button" class="btn btn-xs btn-default share-loan-action-btn" data-key="${safe_key}">${__("Action")} <i class="fa fa-caret-down"></i></button>`;
-			if (data.acct_cls_date) {
-				return `<div style="background-color: #fee2e2; padding: 2px 6px; margin: -2px -6px;">${btn}</div>`;
-			}
-			return btn;
+			return wrap_cell(btn);
 		}
-		if (data && data.acct_cls_date) {
-			return `<div style="background-color: #fee2e2; color: #991b1b; font-weight: 600; padding: 2px 6px; margin: -2px -6px;">${value}</div>`;
+		if (column.fieldname === "refund_status" && value && data && data.parent) {
+			const color_map = {
+				Eligible: "blue",
+				Pending: "orange",
+				"In Progress": "yellow",
+				Success: "green",
+				Failed: "red",
+			};
+			const color = color_map[data.refund_status] || "gray";
+			const pill = `<span class="indicator-pill ${color}">${value}</span>`;
+			return wrap_cell(pill);
 		}
-		return value;
+		return wrap_cell(value);
 	},
 };
 
@@ -174,6 +203,7 @@ function pay_now_report_share_app(row_key) {
 								<th>${__("Entry Type")}</th>
 								<th>${__("Account Number / GL")}</th>
 								<th>${__("Details")}</th>
+								<th>${__("Tran Particular")}</th>
 								<th style="text-align: right;">${__("Amount")}</th>
 							</tr>
 						</thead>
@@ -182,12 +212,14 @@ function pay_now_report_share_app(row_key) {
 								<td><span class="indicator-pill red">${__("Debit")}</span></td>
 								<td><strong>${esc(info.debit_account || __("Not Set in Settings"))}</strong></td>
 								<td>${__("Loan Share Account GL")}</td>
+								<td><code>${esc(info.debit_tran_particular || "-")}</code></td>
 								<td style="text-align: right; font-weight: 600;">${formatted_amt}</td>
 							</tr>
 							<tr>
 								<td><span class="indicator-pill green">${__("Credit")}</span></td>
 								<td><strong>${esc(info.credit_account || "-")}</strong></td>
 								<td>${esc(info.credit_account_type || "CASA")} (${esc(info.acct_name)})</td>
+								<td><code>${esc(info.credit_tran_particular || "-")}</code></td>
 								<td style="text-align: right; font-weight: 600;">${formatted_amt}</td>
 							</tr>
 						</tbody>
@@ -201,10 +233,43 @@ function pay_now_report_share_app(row_key) {
 				fields: [{ fieldname: "preview_html", fieldtype: "HTML", options: html }],
 				primary_action_label: __("Pay Now"),
 				primary_action() {
-					frappe.show_alert({
-						message: __("Preview only — Finacle transfer abhi trigger nahi hoga."),
-						indicator: "blue",
-					});
+					frappe.confirm(
+						__("Confirm fund transfer of {0} from {1} to {2}?", [
+							formatted_amt,
+							esc(info.debit_account || "-"),
+							esc(info.credit_account || "-"),
+						]),
+						() => {
+							frappe.call({
+								method: "custom_report.api.share_application_sync.execute_loan_refund_transfer",
+								args: {
+									share_application: info.share_application,
+									loan_acct_num: info.loan_acct_num,
+								},
+								freeze: true,
+								freeze_message: __("Processing Finacle fund transfer..."),
+								callback(res) {
+									const result = res.message || {};
+									if (result.status === "success") {
+										d.hide();
+										frappe.show_alert({
+											message: result.message || __("Fund transfer completed."),
+											indicator: "green",
+										});
+									} else {
+										frappe.msgprint({
+											title: __("Fund Transfer Failed"),
+											message: esc(result.message || __("Unable to process fund transfer.")),
+											indicator: "red",
+										});
+									}
+									if (frappe.query_report) {
+										frappe.query_report.refresh();
+									}
+								},
+							});
+						}
+					);
 				},
 			});
 			d.show();

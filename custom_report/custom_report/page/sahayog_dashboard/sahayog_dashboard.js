@@ -9685,6 +9685,7 @@ class DrishtiDashboard {
 				searchTerm: "",
 				allExpanded: false,
 				selectedMisZones: [],
+				selectedStaffRows: {},
 				currentPage: 1,
 				pageSize: 50,
 				render: function (container, dashboardInstance, seq) {
@@ -9795,6 +9796,64 @@ class DrishtiDashboard {
 						</div>
 					`);
 				},
+				formatEmpId: function (val) {
+					const raw = String(val || "").trim();
+					if (!raw) return "-";
+					const stripped = raw.replace(/^SAH0*/i, "").replace(/^0+/, "");
+					return stripped || raw;
+				},
+				getSearchRank: function (r, q) {
+					if (!q) return { tier: 9, sub: 0, idVal: "", nameVal: "" };
+					const authId = this.formatEmpId(r.auth_id).toLowerCase();
+					const rawAuthId = String(r.auth_id || "").toLowerCase().trim();
+					const empName = String(r.employee_name || "").toLowerCase().trim();
+					const branch = String(r.branch_name || r.branch || "").toLowerCase().trim();
+					const solId = String(r.sol_id || "").toLowerCase().trim();
+					const desig = String(r.designation || "").toLowerCase().trim();
+					const dist = String(r.district || "").toLowerCase().trim();
+
+					const rankField = (val, baseTier) => {
+						if (!val || val === "-") return null;
+						if (val === q) return { tier: baseTier, sub: 0 };
+						if (val.startsWith(q)) return { tier: baseTier, sub: 1 };
+						if (val.includes(q)) return { tier: baseTier, sub: 2 };
+						return null;
+					};
+
+					const best =
+						rankField(authId, 0) ||
+						rankField(rawAuthId, 0) ||
+						rankField(empName, 1) ||
+						rankField(solId, 2) ||
+						rankField(branch, 3) ||
+						rankField(desig, 4) ||
+						rankField(dist, 5) ||
+						{ tier: 9, sub: 9 };
+
+					return {
+						tier: best.tier,
+						sub: best.sub,
+						idVal: authId,
+						nameVal: empName,
+					};
+				},
+				compareStaffBySearch: function (a, b, q) {
+					if (!q) {
+						return (a.employee_name || "").localeCompare(b.employee_name || "", undefined, {
+							numeric: true,
+							sensitivity: "base",
+						});
+					}
+					const ra = this.getSearchRank(a, q);
+					const rb = this.getSearchRank(b, q);
+					if (ra.sub !== rb.sub) return ra.sub - rb.sub;
+					if (ra.tier !== rb.tier) return ra.tier - rb.tier;
+					if (ra.tier === 0 || /^\d+$/.test(q)) {
+						const idCmp = ra.idVal.localeCompare(rb.idVal, undefined, { numeric: true, sensitivity: "base" });
+						if (idCmp !== 0) return idCmp;
+					}
+					return ra.nameVal.localeCompare(rb.nameVal, undefined, { numeric: true, sensitivity: "base" });
+				},
 				getFilteredData: function () {
 					const self = this;
 					let list = self.tableData || [];
@@ -9802,16 +9861,17 @@ class DrishtiDashboard {
 						list = list.filter(r => self.selectedMisZones.includes(r.zone));
 					}
 					if (self.searchTerm) {
-						const q = self.searchTerm.toLowerCase();
+						const q = self.searchTerm.toLowerCase().trim();
 						list = list.filter(r =>
-							(r.employee_name && r.employee_name.toLowerCase().includes(q)) ||
-							(r.auth_id && r.auth_id.toLowerCase().includes(q)) ||
-							(r.branch_name && r.branch_name.toLowerCase().includes(q)) ||
-							(r.branch && r.branch.toLowerCase().includes(q)) ||
-							(r.sol_id && r.sol_id.toLowerCase().includes(q)) ||
-							(r.designation && r.designation.toLowerCase().includes(q)) ||
-							(r.district && r.district.toLowerCase().includes(q))
+							(r.employee_name && String(r.employee_name).toLowerCase().includes(q)) ||
+							(r.auth_id && String(r.auth_id).toLowerCase().includes(q)) ||
+							(r.branch_name && String(r.branch_name).toLowerCase().includes(q)) ||
+							(r.branch && String(r.branch).toLowerCase().includes(q)) ||
+							(r.sol_id && String(r.sol_id).toLowerCase().includes(q)) ||
+							(r.designation && String(r.designation).toLowerCase().includes(q)) ||
+							(r.district && String(r.district).toLowerCase().includes(q))
 						);
+						list = list.slice().sort((a, b) => self.compareStaffBySearch(a, b, q));
 					}
 					return list;
 				},
@@ -9851,14 +9911,14 @@ class DrishtiDashboard {
 						const br = r.branch || "HO";
 						const desig = r.designation || "Other";
 
-						if (!zones[z]) zones[z] = { name: z, regions: {}, totals: { staff_cnt: 0, new_ac: 0, new_amt: 0, fd_6m_ac: 0, fd_6m_amt: 0, dam_ac: 0, dam_amt: 0, mis_ac: 0, mis_amt: 0, dd_dmd: 0, dd_col: 0, rd_dmd: 0, rd_col: 0, smbg_dmd: 0, smbg_col: 0, tot_dmd: 0, tot_col: 0, casa_mab: 0 } };
-						if (!zones[z].regions[reg]) zones[z].regions[reg] = { name: reg, districts: {}, totals: { staff_cnt: 0, new_ac: 0, new_amt: 0, fd_6m_ac: 0, fd_6m_amt: 0, dam_ac: 0, dam_amt: 0, mis_ac: 0, mis_amt: 0, dd_dmd: 0, dd_col: 0, rd_dmd: 0, rd_col: 0, smbg_dmd: 0, smbg_col: 0, tot_dmd: 0, tot_col: 0, casa_mab: 0 } };
-						if (!zones[z].regions[reg].districts[dist]) zones[z].regions[reg].districts[dist] = { name: dist, branches: {}, totals: { staff_cnt: 0, new_ac: 0, new_amt: 0, fd_6m_ac: 0, fd_6m_amt: 0, dam_ac: 0, dam_amt: 0, mis_ac: 0, mis_amt: 0, dd_dmd: 0, dd_col: 0, rd_dmd: 0, rd_col: 0, smbg_dmd: 0, smbg_col: 0, tot_dmd: 0, tot_col: 0, casa_mab: 0 } };
-						if (!zones[z].regions[reg].districts[dist].branches[br]) zones[z].regions[reg].districts[dist].branches[br] = { name: br, sol_id: r.sol_id, district: dist, designations: {}, totals: { staff_cnt: 0, new_ac: 0, new_amt: 0, fd_6m_ac: 0, fd_6m_amt: 0, dam_ac: 0, dam_amt: 0, mis_ac: 0, mis_amt: 0, dd_dmd: 0, dd_col: 0, rd_dmd: 0, rd_col: 0, smbg_dmd: 0, smbg_col: 0, tot_dmd: 0, tot_col: 0, casa_mab: 0 } };
+						if (!zones[z]) zones[z] = { name: z, regions: {}, totals: { staff_cnt: 0, new_ac: 0, new_amt: 0, fd_6m_ac: 0, fd_6m_amt: 0, dam_ac: 0, dam_amt: 0, mis_ac: 0, mis_amt: 0, dd_dmd: 0, dd_col: 0, rd_dmd: 0, rd_col: 0, smbg_dmd: 0, smbg_col: 0, tot_dmd: 0, tot_col: 0, casa_sa: 0, casa_ca: 0, casa_tasc: 0, casa_ac: 0, casa_mab: 0 } };
+						if (!zones[z].regions[reg]) zones[z].regions[reg] = { name: reg, districts: {}, totals: { staff_cnt: 0, new_ac: 0, new_amt: 0, fd_6m_ac: 0, fd_6m_amt: 0, dam_ac: 0, dam_amt: 0, mis_ac: 0, mis_amt: 0, dd_dmd: 0, dd_col: 0, rd_dmd: 0, rd_col: 0, smbg_dmd: 0, smbg_col: 0, tot_dmd: 0, tot_col: 0, casa_sa: 0, casa_ca: 0, casa_tasc: 0, casa_ac: 0, casa_mab: 0 } };
+						if (!zones[z].regions[reg].districts[dist]) zones[z].regions[reg].districts[dist] = { name: dist, branches: {}, totals: { staff_cnt: 0, new_ac: 0, new_amt: 0, fd_6m_ac: 0, fd_6m_amt: 0, dam_ac: 0, dam_amt: 0, mis_ac: 0, mis_amt: 0, dd_dmd: 0, dd_col: 0, rd_dmd: 0, rd_col: 0, smbg_dmd: 0, smbg_col: 0, tot_dmd: 0, tot_col: 0, casa_sa: 0, casa_ca: 0, casa_tasc: 0, casa_ac: 0, casa_mab: 0 } };
+						if (!zones[z].regions[reg].districts[dist].branches[br]) zones[z].regions[reg].districts[dist].branches[br] = { name: br, sol_id: r.sol_id, district: dist, designations: {}, totals: { staff_cnt: 0, new_ac: 0, new_amt: 0, fd_6m_ac: 0, fd_6m_amt: 0, dam_ac: 0, dam_amt: 0, mis_ac: 0, mis_amt: 0, dd_dmd: 0, dd_col: 0, rd_dmd: 0, rd_col: 0, smbg_dmd: 0, smbg_col: 0, tot_dmd: 0, tot_col: 0, casa_sa: 0, casa_ca: 0, casa_tasc: 0, casa_ac: 0, casa_mab: 0 } };
 
 						const brObj = zones[z].regions[reg].districts[dist].branches[br];
 						if (!brObj.designations[desig]) {
-							brObj.designations[desig] = { name: desig, staff: [], totals: { staff_cnt: 0, new_ac: 0, new_amt: 0, fd_6m_ac: 0, fd_6m_amt: 0, dam_ac: 0, dam_amt: 0, mis_ac: 0, mis_amt: 0, dd_dmd: 0, dd_col: 0, rd_dmd: 0, rd_col: 0, smbg_dmd: 0, smbg_col: 0, tot_dmd: 0, tot_col: 0, casa_mab: 0 } };
+							brObj.designations[desig] = { name: desig, staff: [], totals: { staff_cnt: 0, new_ac: 0, new_amt: 0, fd_6m_ac: 0, fd_6m_amt: 0, dam_ac: 0, dam_amt: 0, mis_ac: 0, mis_amt: 0, dd_dmd: 0, dd_col: 0, rd_dmd: 0, rd_col: 0, smbg_dmd: 0, smbg_col: 0, tot_dmd: 0, tot_col: 0, casa_sa: 0, casa_ca: 0, casa_tasc: 0, casa_ac: 0, casa_mab: 0 } };
 						}
 						const dObj = brObj.designations[desig];
 						dObj.staff.push(r);
@@ -9882,15 +9942,20 @@ class DrishtiDashboard {
 							t.smbg_col += r.smbg_collection || 0;
 							t.tot_dmd += r.total_demand || 0;
 							t.tot_col += r.total_collection || 0;
+							t.casa_sa += r.casa_sa || 0;
+							t.casa_ca += r.casa_ca || 0;
+							t.casa_tasc += r.casa_tasc || 0;
+							t.casa_ac += r.casa_ac || 0;
 							t.casa_mab += r.casa_inc_mab || 0;
 						});
 					});
 
 					let html = `
-						<div style="overflow-x: auto; max-width: 100%; border: 1px solid #cbd5e1; border-radius: 8px; background: white; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+						<div style="overflow: auto; max-height: calc(100vh - 280px); max-width: 100%; border: 1px solid #cbd5e1; border-radius: 8px; background: white; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
 							<table class="table table-bordered mis-table" style="margin-bottom: 0; font-size: 12px; width: 100%; white-space: nowrap;">
-								<thead>
+								<thead style="position: sticky; top: 0; z-index: 5;">
 									<tr style="background: #1e293b; color: white; text-align: center;">
+										<th rowspan="2" style="vertical-align: middle; width: 34px; text-align: center;">✓</th>
 										<th rowspan="2" style="vertical-align: middle; min-width: 250px; text-align: left; padding: 10px 14px;">Hierarchy / Staff Details</th>
 										<th rowspan="2" style="vertical-align: middle; min-width: 90px;">Auth ID</th>
 										<th rowspan="2" style="vertical-align: middle; min-width: 130px;">Designation</th>
@@ -9899,7 +9964,7 @@ class DrishtiDashboard {
 										<th colspan="2" style="background: #b45309;">Recurring Deposit (RD)</th>
 										<th colspan="2" style="background: #6d28d9;">SMBG</th>
 										<th colspan="3" style="background: #0f172a;">Total Demand vs Collection</th>
-										<th colspan="2" style="background: #be185d;">CASA</th>
+										<th colspan="5" style="background: #be185d;">CASA</th>
 									</tr>
 									<tr style="background: #334155; color: #f8fafc; font-size: 11px; text-align: right;">
 										<th style="text-align: right;">DD (Ac / Amt)</th>
@@ -9924,6 +9989,9 @@ class DrishtiDashboard {
 										<th style="text-align: right;">Collection</th>
 										<th style="text-align: right; background: #1e293b; color: #38bdf8;">Coll %</th>
 										
+										<th style="text-align: right;">Saving AC</th>
+										<th style="text-align: right;">Current AC</th>
+										<th style="text-align: right;">TASC AC</th>
 										<th style="text-align: right;">Total AC</th>
 										<th style="text-align: right;">Incr MAB</th>
 									</tr>
@@ -9931,11 +9999,43 @@ class DrishtiDashboard {
 								<tbody>
 					`;
 
-					Object.keys(zones).sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" })).forEach(zName => {
+					const searchQuery = (self.searchTerm || "").toLowerCase().trim();
+					const isSearching = Boolean(searchQuery);
+					const sortGroupKeys = (objMap, getBestStaff) => {
+						const keys = Object.keys(objMap);
+						if (!isSearching) {
+							return keys.sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" }));
+						}
+						return keys.sort((a, b) => self.compareStaffBySearch(getBestStaff(objMap[a]), getBestStaff(objMap[b]), searchQuery));
+					};
+					const getBestFromDesig = (dObj) => dObj.staff[0] || {};
+					const getBestFromBranch = (brObj) => {
+						const list = Object.values(brObj.designations).map(getBestFromDesig);
+						list.sort((a, b) => self.compareStaffBySearch(a, b, searchQuery));
+						return list[0] || {};
+					};
+					const getBestFromDist = (distObj) => {
+						const list = Object.values(distObj.branches).map(getBestFromBranch);
+						list.sort((a, b) => self.compareStaffBySearch(a, b, searchQuery));
+						return list[0] || {};
+					};
+					const getBestFromReg = (regObj) => {
+						const list = Object.values(regObj.districts).map(getBestFromDist);
+						list.sort((a, b) => self.compareStaffBySearch(a, b, searchQuery));
+						return list[0] || {};
+					};
+					const getBestFromZone = (zObj) => {
+						const list = Object.values(zObj.regions).map(getBestFromReg);
+						list.sort((a, b) => self.compareStaffBySearch(a, b, searchQuery));
+						return list[0] || {};
+					};
+
+					sortGroupKeys(zones, getBestFromZone).forEach(zName => {
 						const zObj = zones[zName];
-						const zExpanded = self.allExpanded || self.expandedZones[zName];
+						const zExpanded = isSearching || self.allExpanded || self.expandedZones[zName];
 						html += `
 							<tr class="mis-sp-zone-row" data-zone="${zName}" style="background: #e2e8f0; font-weight: 800; cursor: pointer; color: #0f172a;">
+								<td></td>
 								<td style="text-align: left; padding-left: 14px;"><span style="display: inline-block; width: 16px;">${zExpanded ? "▼" : "▶"}</span> ${zName} (${zObj.totals.staff_cnt} Staff)</td>
 								<td>-</td>
 								<td>Zone Total</td>
@@ -9961,18 +10061,22 @@ class DrishtiDashboard {
 								<td style="text-align: right;">${fmtAmt(zObj.totals.tot_col)}</td>
 								<td style="text-align: right;">${fmtPct(zObj.totals.tot_col, zObj.totals.tot_dmd)}</td>
 								
-								<td style="text-align: right;">-</td>
+								<td style="text-align: right;">${fmtCount(zObj.totals.casa_sa)}</td>
+								<td style="text-align: right;">${fmtCount(zObj.totals.casa_ca)}</td>
+								<td style="text-align: right;">${fmtCount(zObj.totals.casa_tasc)}</td>
+								<td style="text-align: right;">${fmtCount(zObj.totals.casa_ac)}</td>
 								<td style="text-align: right;">${fmtAmt(zObj.totals.casa_mab)}</td>
 							</tr>
 						`;
 
 						if (zExpanded) {
-							Object.keys(zObj.regions).sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" })).forEach(regName => {
+							sortGroupKeys(zObj.regions, getBestFromReg).forEach(regName => {
 								const regObj = zObj.regions[regName];
 								const regKey = `${zName}_${regName}`;
-								const regExpanded = self.allExpanded || self.expandedRegions[regKey];
+								const regExpanded = isSearching || self.allExpanded || self.expandedRegions[regKey];
 								html += `
 									<tr class="mis-sp-reg-row" data-reg-key="${regKey}" style="background: #f1f5f9; font-weight: 700; cursor: pointer; color: #1e293b;">
+										<td></td>
 										<td style="text-align: left; padding-left: 28px;"><span style="display: inline-block; width: 16px;">${regExpanded ? "▼" : "▶"}</span> ${regName} (${regObj.totals.staff_cnt} Staff)</td>
 										<td>-</td>
 										<td>Region Total</td>
@@ -9998,18 +10102,22 @@ class DrishtiDashboard {
 										<td style="text-align: right;">${fmtAmt(regObj.totals.tot_col)}</td>
 										<td style="text-align: right;">${fmtPct(regObj.totals.tot_col, regObj.totals.tot_dmd)}</td>
 										
-										<td style="text-align: right;">-</td>
+										<td style="text-align: right;">${fmtCount(regObj.totals.casa_sa)}</td>
+										<td style="text-align: right;">${fmtCount(regObj.totals.casa_ca)}</td>
+										<td style="text-align: right;">${fmtCount(regObj.totals.casa_tasc)}</td>
+										<td style="text-align: right;">${fmtCount(regObj.totals.casa_ac)}</td>
 										<td style="text-align: right;">${fmtAmt(regObj.totals.casa_mab)}</td>
 									</tr>
 								`;
 
 								if (regExpanded) {
-									Object.keys(regObj.districts).sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" })).forEach(distName => {
+									sortGroupKeys(regObj.districts, getBestFromDist).forEach(distName => {
 										const distObj = regObj.districts[distName];
 										const distKey = `${regKey}_${distName}`;
-										const distExpanded = self.allExpanded || self.expandedDistricts[distKey];
+										const distExpanded = isSearching || self.allExpanded || self.expandedDistricts[distKey];
 										html += `
 											<tr class="mis-sp-dist-row" data-dist-key="${distKey}" style="background: #f8fafc; font-weight: 600; cursor: pointer; color: #334155; border-left: 3px solid #64748b;">
+												<td></td>
 												<td style="text-align: left; padding-left: 42px;"><span style="display: inline-block; width: 16px;">${distExpanded ? "▼" : "▶"}</span> 🏛️ ${distName} District (${distObj.totals.staff_cnt} Staff)</td>
 												<td>-</td>
 												<td>District Total</td>
@@ -10035,18 +10143,22 @@ class DrishtiDashboard {
 												<td style="text-align: right;">${fmtAmt(distObj.totals.tot_col)}</td>
 												<td style="text-align: right;">${fmtPct(distObj.totals.tot_col, distObj.totals.tot_dmd)}</td>
 												
-												<td style="text-align: right;">-</td>
+												<td style="text-align: right;">${fmtCount(distObj.totals.casa_sa)}</td>
+												<td style="text-align: right;">${fmtCount(distObj.totals.casa_ca)}</td>
+												<td style="text-align: right;">${fmtCount(distObj.totals.casa_tasc)}</td>
+												<td style="text-align: right;">${fmtCount(distObj.totals.casa_ac)}</td>
 												<td style="text-align: right;">${fmtAmt(distObj.totals.casa_mab)}</td>
 											</tr>
 										`;
 
 										if (distExpanded) {
-											Object.keys(distObj.branches).sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" })).forEach(brName => {
+											sortGroupKeys(distObj.branches, getBestFromBranch).forEach(brName => {
 												const brObj = distObj.branches[brName];
 												const brKey = `${distKey}_${brName}`;
-												const brExpanded = self.allExpanded || self.expandedBranches[brKey];
+												const brExpanded = isSearching || self.allExpanded || self.expandedBranches[brKey];
 												html += `
 													<tr class="mis-sp-branch-row" data-br-key="${brKey}" style="background: #ffffff; font-weight: 600; cursor: pointer; color: #1e293b; border-left: 4px solid #417d81;">
+														<td></td>
 														<td style="text-align: left; padding-left: 56px;"><span style="display: inline-block; width: 16px;">${brExpanded ? "▼" : "▶"}</span> 📍 ${brName} <span style="font-size: 11px; color: #64748b; font-weight: 500;">(SOL: ${brObj.sol_id || 'N/A'})</span></td>
 														<td>-</td>
 														<td>Branch Total</td>
@@ -10072,27 +10184,35 @@ class DrishtiDashboard {
 														<td style="text-align: right;">${fmtAmt(brObj.totals.tot_col)}</td>
 														<td style="text-align: right;">${fmtPct(brObj.totals.tot_col, brObj.totals.tot_dmd)}</td>
 														
-														<td style="text-align: right;">-</td>
+														<td style="text-align: right;">${fmtCount(brObj.totals.casa_sa)}</td>
+														<td style="text-align: right;">${fmtCount(brObj.totals.casa_ca)}</td>
+														<td style="text-align: right;">${fmtCount(brObj.totals.casa_tasc)}</td>
+														<td style="text-align: right;">${fmtCount(brObj.totals.casa_ac)}</td>
 														<td style="text-align: right;">${fmtAmt(brObj.totals.casa_mab)}</td>
 													</tr>
 												`;
 
 												if (brExpanded) {
-													const sortedDesigs = Object.keys(brObj.designations).sort((a, b) => a.localeCompare(b));
+													const sortedDesigs = sortGroupKeys(brObj.designations, getBestFromDesig);
 													sortedDesigs.forEach(desigName => {
 														const dObj = brObj.designations[desigName];
-														dObj.staff.sort((a, b) => (a.employee_name || "").localeCompare(b.employee_name || ""));
+														dObj.staff.sort((a, b) => self.compareStaffBySearch(a, b, searchQuery));
 														
 														dObj.staff.forEach(st => {
 															const statusColor = (st.status || "Active").toLowerCase() === "active" ? "#16a34a" : "#dc2626";
 															const statusBg = (st.status || "Active").toLowerCase() === "active" ? "#dcfce7" : "#fee2e2";
+															const rowKey = frappe.utils.escape_html(`${st.auth_id || ""}_${st.employee_name || ""}_${st.branch || ""}`);
+															const isChecked = !!self.selectedStaffRows[rowKey];
 															html += `
-																<tr style="background: white;">
+																<tr class="mis-sp-staff-row" style="background: ${isChecked ? "#fef08a" : "white"};">
+																	<td style="text-align: center; vertical-align: middle;">
+																		<input type="checkbox" class="mis-sp-row-check" data-row-key="${rowKey}" ${isChecked ? "checked" : ""} style="cursor: pointer; width: 14px; height: 14px;" />
+																	</td>
 																	<td style="text-align: left; padding-left: 70px; font-weight: 500;">
 																		<span style="color: #0f172a; font-weight: 600;">${st.employee_name}</span>
 																		<span style="display: inline-block; margin-left: 6px; padding: 1px 6px; border-radius: 4px; font-size: 10px; font-weight: 700; color: ${statusColor}; background: ${statusBg};">${st.status || "Active"}</span>
 																	</td>
-																	<td style="font-family: monospace; color: #475569;">${st.auth_id}</td>
+																	<td style="font-family: monospace; color: #475569;">${self.formatEmpId(st.auth_id)}</td>
 																	<td style="color: #475569; font-weight: 500;">${st.designation}</td>
 																	
 																	<td style="text-align: right;">${st.dd_ac ? `${st.dd_ac} / ${fmtAmt(st.dd_amt)}` : "-"}</td>
@@ -10117,6 +10237,9 @@ class DrishtiDashboard {
 																	<td style="text-align: right;">${fmtAmt(st.total_collection)}</td>
 																	<td style="text-align: right;">${fmtPct(st.total_collection, st.total_demand)}</td>
 																	
+																	<td style="text-align: right;">${fmtCount(st.casa_sa)}</td>
+																	<td style="text-align: right;">${fmtCount(st.casa_ca)}</td>
+																	<td style="text-align: right;">${fmtCount(st.casa_tasc)}</td>
 																	<td style="text-align: right;">${fmtCount(st.casa_ac)}</td>
 																	<td style="text-align: right;">${fmtAmt(st.casa_inc_mab)}</td>
 																</tr>
@@ -10125,6 +10248,7 @@ class DrishtiDashboard {
 
 														html += `
 															<tr style="background: #ffedd5; font-weight: 800; color: #9a3412; border-top: 1px solid #fdba74; border-bottom: 1px solid #fdba74;">
+																<td></td>
 																<td style="text-align: left; padding-left: 70px; font-style: italic;">${desigName} Total (${dObj.totals.staff_cnt})</td>
 																<td>-</td>
 																<td>${desigName} Total</td>
@@ -10151,7 +10275,10 @@ class DrishtiDashboard {
 																<td style="text-align: right;">${fmtAmt(dObj.totals.tot_col)}</td>
 																<td style="text-align: right;">${fmtPct(dObj.totals.tot_col, dObj.totals.tot_dmd)}</td>
 																
-																<td style="text-align: right;">-</td>
+																<td style="text-align: right;">${fmtCount(dObj.totals.casa_sa)}</td>
+																<td style="text-align: right;">${fmtCount(dObj.totals.casa_ca)}</td>
+																<td style="text-align: right;">${fmtCount(dObj.totals.casa_tasc)}</td>
+																<td style="text-align: right;">${fmtCount(dObj.totals.casa_ac)}</td>
 																<td style="text-align: right;">${fmtAmt(dObj.totals.casa_mab)}</td>
 															</tr>
 														`;
@@ -10206,8 +10333,15 @@ class DrishtiDashboard {
 					});
 
 					container.off("input", "#mis-sp-search").on("input", "#mis-sp-search", function () {
-						self.searchTerm = $(this).val().trim();
-						self.renderMisTable(container.find("#mis-sp-table-container"), dashboardInstance);
+						const val = $(this).val().trim();
+						clearTimeout(self._searchTimer);
+						self._searchTimer = setTimeout(() => {
+							self.searchTerm = val;
+							const filtered = self.getFilteredData();
+							container.find("#mis-sp-records-count").text(`${filtered.length} Staff`);
+							self.renderKPI(container.find("#mis-sp-kpi-container"), dashboardInstance);
+							self.renderMisTable(container.find("#mis-sp-table-container"), dashboardInstance);
+						}, 250);
 					});
 
 					container.off("click", "#mis-sp-expand-toggle").on("click", "#mis-sp-expand-toggle", function () {
@@ -10247,6 +10381,14 @@ class DrishtiDashboard {
 						const key = $(this).data("dist-key");
 						self.expandedDistricts[key] = !self.expandedDistricts[key];
 						self.renderMisTable(container.find("#mis-sp-table-container"), dashboardInstance);
+					});
+
+					container.off("change", ".mis-sp-row-check").on("change", ".mis-sp-row-check", function () {
+						const key = $(this).attr("data-row-key");
+						const checked = this.checked;
+						if (checked) self.selectedStaffRows[key] = true;
+						else delete self.selectedStaffRows[key];
+						$(this).closest("tr").css("background", checked ? "#fef08a" : "white");
 					});
 
 					container.off("click", ".mis-sp-branch-row").on("click", ".mis-sp-branch-row", function () {
