@@ -429,3 +429,32 @@ def execute_loan_refund_transfer(share_application, loan_acct_num):
 	frappe.db.commit()
 	frappe.log_error(response_text, f"Loan Refund Transfer Failed: {row.name}")
 	return {"status": "error", "message": err_msg}
+
+
+@frappe.whitelist()
+def sync_share_loan_accounts_from_report():
+	"""Sync latest Finacle loan accounts and closure statuses without altering Success rows."""
+	if not frappe.has_permission("Share Application", "write"):
+		frappe.throw(_("Not permitted to sync Share Loan Accounts."))
+
+	from banking_api.banking_api.doctype.share_application_settings.share_application_settings import (
+		daily_check_loan_accounts_status,
+		daily_sync_new_loan_accounts,
+	)
+
+	sync_res = daily_sync_new_loan_accounts() or {}
+	status_res = daily_check_loan_accounts_status() or {}
+
+	created = sync_res.get("created_count", 0)
+	updated = sync_res.get("updated_count", 0)
+	status_updated = status_res.get("updated_count", 0)
+
+	return {
+		"status": "success",
+		"created_count": created,
+		"updated_count": updated,
+		"status_updated_count": status_updated,
+		"message": _(
+			"Sync completed. New: {0}, Updated: {1}, Status Checked: {2}"
+		).format(created, updated, status_updated),
+	}

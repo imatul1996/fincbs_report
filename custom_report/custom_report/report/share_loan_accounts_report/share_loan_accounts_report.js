@@ -80,6 +80,22 @@ frappe.query_reports["Share Loan Accounts Report"] = {
 			.on("click.shareLoanReport", ".share-loan-action-btn", function (ev) {
 				open_report_row_actions(ev, $(this).attr("data-key"));
 			});
+
+		report.page.add_inner_button(__("Sync Loan Accounts"), () => {
+			frappe.call({
+				method: "custom_report.api.share_application_sync.sync_share_loan_accounts_from_report",
+				freeze: true,
+				freeze_message: __("Syncing latest Loan Accounts from Finacle..."),
+				callback(r) {
+					const res = r.message || {};
+					frappe.show_alert({
+						message: res.message || __("Loan accounts synced successfully."),
+						indicator: "green",
+					});
+					report.refresh();
+				},
+			});
+		});
 	},
 
 	formatter(value, row, column, data, default_formatter) {
