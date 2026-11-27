@@ -57,7 +57,7 @@ website_route_rules = [
 
 # include js in doctype views
 # doctype_js = {"doctype" : "public/js/doctype.js"}
-doctype_list_js = {"Share Application": "public/js/share_application_list.js"}
+# doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
 # doctype_calendar_js = {"doctype" : "public/js/doctype_calendar.js"}
 
@@ -151,9 +151,6 @@ doctype_list_js = {"Share Application": "public/js/share_application_list.js"}
 # Hook on document methods and events
 
 doc_events = {
-	"Share Loan Account": {
-		"autoname": "custom_report.api.share_application_sync.autoname_share_loan_account"
-	},
 	"Sahayog Branch": {
 		"on_update": "custom_report.custom_report.page.sahayog_dashboard.sahayog_dashboard.clear_sahayog_branches_cache",
 		"on_trash": "custom_report.custom_report.page.sahayog_dashboard.sahayog_dashboard.clear_sahayog_branches_cache"
